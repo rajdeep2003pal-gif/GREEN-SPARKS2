@@ -1,0 +1,2039 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartPump - Revolutionary IoT Water Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .team-name-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            opacity: 0.9;
+            width: 100%;
+            max-width: 95%;
+            text-align: center;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .team-name {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: clamp(32px, 12vw, 80px);
+            font-weight: 900;
+            background: linear-gradient(135deg, #76B900, #a0ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            line-height: 1.1;
+            position: relative;
+            opacity: 1;
+            text-shadow: 0 0 10px rgba(118, 185, 0, 0.3);
+            padding: 0 20px;
+            word-wrap: break-word;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(118, 185, 0, 0.2), transparent 70%);
+            border-radius: 50%;
+            filter: blur(20px);
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-bottom: 1px solid rgba(118, 185, 0, 0.1);
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #76B900, #a0ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 35px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links li {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .nav-links li::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: #76B900;
+            transition: width 0.3s;
+        }
+
+        .nav-links li:hover::after {
+            width: 100%;
+        }
+
+        .nav-links li:hover {
+            color: #76B900;
+        }
+
+        #loginBtn,
+        #signupBtn {
+            padding: 8px 20px;
+            border: 2px solid #76B900;
+            border-radius: 4px;
+            color: #76B900;
+            font-weight: 700;
+        }
+
+        #signupBtn:hover {
+            background: #76B900;
+            color: #000;
+        }
+
+        #userProfileBtn {
+            background: #76B900;
+            color: #000;
+            font-weight: 700;
+            padding: 8px 20px;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .profile-icon {
+            width: 24px;
+            height: 24px;
+            background: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #76B900;
+        }
+
+        .profile-dropdown {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: rgba(20, 20, 20, 0.98);
+            border: 2px solid #76B900;
+            border-radius: 8px;
+            padding: 15px;
+            min-width: 200px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .profile-dropdown.show {
+            display: flex;
+        }
+
+        .profile-info {
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .profile-info .user-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #76B900;
+        }
+
+        .profile-info .user-type {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .dropdown-btn {
+            padding: 10px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .dropdown-btn:hover {
+            background: #76B900;
+            color: #000;
+        }
+
+        #logoutBtn {
+            background: #ff0336;
+            color: white;
+            border-color: #ff0336;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 100px 60px 60px;
+        }
+
+        .hero-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(118, 185, 0, 0.1) 0%, transparent 70%);
+            z-index: 1;
+        }
+
+        .grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(118, 185, 0, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(118, 185, 0, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            max-width: 1200px;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(118, 185, 0, 0.1);
+            border: 1px solid #76B900;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #76B900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(48px, 8vw, 96px);
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #fff 0%, #76B900 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero p {
+            font-size: clamp(18px, 2vw, 24px);
+            color: #aaa;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            animation: fadeInUp 1.2s ease;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1.4s ease;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+            padding: 18px 40px;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #76B900;
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background: #a0ff00;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(118, 185, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #fff;
+            border: 2px solid #76B900;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(118, 185, 0, 0.1);
+            transform: translateY(-3px);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Section Styles */
+        .section {
+            padding: 120px 60px;
+            position: relative;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .section-title h2 {
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, #76B900 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-title p {
+            font-size: 18px;
+            color: #888;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Features Section */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: linear-gradient(145deg, rgba(20, 20, 20, 0.8), rgba(10, 10, 10, 0.8));
+            border: 1px solid rgba(118, 185, 0, 0.2);
+            border-radius: 8px;
+            padding: 50px 40px;
+            transition: all 0.4s;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(118, 185, 0, 0.05) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: #76B900;
+            box-shadow: 0 20px 60px rgba(118, 185, 0, 0.2);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: rgba(118, 185, 0, 0.1);
+            border: 2px solid #76B900;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #fff;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feature-card p {
+            color: #aaa;
+            line-height: 1.8;
+            font-size: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* About Section */
+        .about-section {
+            background: linear-gradient(180deg, #000 0%, #0a0a0a 100%);
+        }
+
+        .about-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(15, 15, 15, 0.9));
+            border: 1px solid rgba(118, 185, 0, 0.3);
+            border-radius: 12px;
+            padding: 60px;
+            text-align: center;
+        }
+
+        .about-content p {
+            font-size: 20px;
+            line-height: 1.8;
+            color: #aaa;
+        }
+
+        .about-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(118, 185, 0, 0.1);
+            border: 1px solid #76B900;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #76B900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 30px;
+        }
+
+        /* Team Section */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            justify-content: center;
+        }
+
+        @media (max-width: 1024px) {
+            .team-grid {
+                grid-template-columns: repeat(2, 1fr);
+                max-width: 800px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .team-grid {
+                grid-template-columns: 1fr;
+                max-width: 400px;
+            }
+        }
+
+        .team-card {
+            background: linear-gradient(145deg, rgba(20, 20, 20, 0.9), rgba(10, 10, 10, 0.9));
+            border: 1px solid rgba(118, 185, 0, 0.3);
+            border-radius: 12px;
+            padding: 25px 20px;
+            text-align: center;
+            transition: all 0.4s;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .team-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: #76B900;
+            box-shadow: 0 25px 60px rgba(118, 185, 0, 0.3);
+            background: linear-gradient(145deg, rgba(25, 25, 25, 0.95), rgba(15, 15, 15, 0.95));
+        }
+
+        .team-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(118, 185, 0, 0.1);
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border: 3px solid rgba(118, 185, 0, 0.5);
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            padding: 0;
+            position: relative;
+        }
+
+        .team-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            transition: transform 0.3s ease;
+            min-width: 100%;
+            min-height: 100%;
+        }
+
+        .team-avatar:hover {
+            transform: scale(1.05);
+            border-color: #76B900;
+            box-shadow: 0 0 20px rgba(118, 185, 0, 0.4);
+        }
+        
+        .team-avatar:hover img {
+            transform: scale(1.1);
+        }
+
+        .team-card h3 {
+            font-size: 18px;
+            color: #fff;
+            margin: 15px 0 5px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .team-card .role {
+            font-size: 14px;
+            color: #76B900;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 5px;
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(118, 185, 0, 0.1);
+            border-radius: 15px;
+        }
+
+        /* Demo Section */
+        .demo-section {
+            background: linear-gradient(180deg, #0a0a0a 0%, #000 100%);
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .demo-card {
+            background: linear-gradient(145deg, rgba(30, 30, 30, 0.9), rgba(15, 15, 15, 0.9));
+            border: 1px solid rgba(118, 185, 0, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.4s;
+        }
+
+        .demo-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 80px rgba(118, 185, 0, 0.3);
+        }
+
+        .demo-card h3 {
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        /* Pump Switch Demo */
+        .pump-switch-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .pump-status {
+            font-size: 24px;
+            font-weight: 900;
+            padding: 12px 35px;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .pump-status.on {
+            background: rgba(118, 185, 0, 0.2);
+            color: #76B900;
+            border: 2px solid #76B900;
+        }
+
+        .pump-status.off {
+            background: rgba(255, 3, 54, 0.2);
+            color: #ff0336;
+            border: 2px solid #ff0336;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 120px;
+            height: 60px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #333;
+            border-radius: 30px;
+            transition: 0.4s;
+            border: 2px solid #444;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 48px;
+            width: 48px;
+            left: 4px;
+            bottom: 4px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.4s;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background: #76B900;
+            border-color: #5a8f00;
+        }
+
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(60px);
+        }
+
+        /* Water Tank Demo */
+        .water-tank-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .tank {
+            width: 120px;
+            height: 180px;
+            border: 4px solid #76B900;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            overflow: hidden;
+            background: #0a0a0a;
+        }
+
+        .tank-top {
+            width: 140px;
+            height: 15px;
+            background: #76B900;
+            border-radius: 5px;
+            margin-bottom: -2px;
+        }
+
+        .water {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #76B900, #5a8f00);
+            transition: height 0.5s ease;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .water::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: wave 2s infinite linear;
+        }
+
+        @keyframes wave {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .water-level-text {
+            font-size: 36px;
+            font-weight: 900;
+            color: #76B900;
+        }
+
+        .water-status {
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Chart Demo */
+        .chart-container {
+            padding: 10px;
+            height: 250px;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            background: linear-gradient(135deg, #000000 0%, #129e1b 100%);
+            padding: 80px 60px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1" fill="rgba(0,0,0,0.1)"/></svg>');
+            background-size: 20px 20px;
+            opacity: 0.3;
+        }
+
+        .contact-container {
+            max-width: 700px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .contact-section .section-title h2 {
+            color: #000;
+            background: none;
+            -webkit-text-fill-color: #000;
+            margin-bottom: 20px;
+        }
+
+        .contact-section .section-title p {
+            color: rgba(0, 0, 0, 0.7);
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 15px;
+            color: #fff;
+            font-size: 16px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #fff;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            background: #000;
+            color: #76B900;
+            border: none;
+            padding: 18px;
+            border-radius: 4px;
+            font-weight: 900;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #111;
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .contact-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(0, 0, 0, 0.8);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .contact-info-item .icon {
+            font-size: 20px;
+        }
+
+        .form-message {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .form-message.success {
+            display: block;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid #000;
+            color: #000;
+        }
+
+        .form-message.error {
+            display: block;
+            background: rgba(255, 3, 54, 0.3);
+            border: 2px solid #ff0336;
+            color: #fff;
+        }
+
+        /* Modals */
+        .modal,
+        .formModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+        }
+
+        .modal-box,
+        .form-box {
+            width: 400px;
+            background: rgba(20, 20, 20, 0.98);
+            padding: 40px;
+            border-radius: 8px;
+            border: 2px solid #76B900;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-box h2,
+        .form-box h2 {
+            margin-bottom: 25px;
+            color: #76B900;
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .acc-btn,
+        .btnSubmit {
+            width: 100%;
+            padding: 16px;
+            margin-top: 15px;
+            background: #76B900;
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        .acc-btn:hover,
+        .btnSubmit:hover {
+            background: #a0ff00;
+            transform: translateY(-2px);
+        }
+
+        .closeModal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 30px;
+            cursor: pointer;
+            color: #76B900;
+        }
+
+        .form-box form input {
+            width: 100%;
+            margin-bottom: 15px;
+            padding: 14px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .form-box form input:focus {
+            outline: none;
+            border: 1px solid #76B900;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .error-msg {
+            background: rgba(255, 3, 54, 0.1);
+            border: 1px solid #ff0336;
+            color: #ff0336;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .success-msg {
+            background: rgba(118, 185, 0, 0.1);
+            border: 1px solid #76B900;
+            color: #76B900;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+
+        /* Footer */
+        .footer {
+            background: #0a0a0a;
+            padding: 60px 60px 30px;
+            border-top: 1px solid rgba(118, 185, 0, 0.1);
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto 40px;
+        }
+
+        .footer-section h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #76B900;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 12px;
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .footer-section ul li:hover {
+            color: #76B900;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(118, 185, 0, 0.1);
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .team-name {
+                font-size: clamp(28px, 10vw, 60px);
+                letter-spacing: 4px;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .team-name .line {
+                display: block;
+                text-align: center;
+                margin: 2px 0;
+                width: 100%;
+            }
+
+            .team-name .line:first-child {
+                margin-bottom: 0;
+            }
+
+            .navbar {
+                padding: 15px 20px;
+                flex-wrap: wrap;
+            }
+
+            .nav-links {
+                gap: 15px;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+                margin-top: 15px;
+            }
+
+            .nav-links li {
+                font-size: 12px;
+            }
+
+            .hero,
+            .section {
+                padding: 80px 20px 60px;
+            }
+
+            .features-grid,
+            .team-grid,
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+            }
+
+            .contact-section {
+                padding: 60px 20px;
+            }
+
+            .contact-form {
+                padding: 30px 20px;
+            }
+
+            .footer {
+                padding: 40px 20px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="team-name-container">
+        <div class="glow"></div>
+    </div>
+
+    <script>
+        // Initialize EmailJS
+        (function () {
+            emailjs.init("BOv1N_XamnuD--Nv4"); // Replace with your actual public key
+        })();
+
+        const EMAILJS_CONFIG = {
+            serviceID: "service_2wb0x6h",
+            templateID: "template_2fl399f"
+        };
+    </script>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo" onclick="scrollToTop()">GREEN SPARKS2</div>
+        <ul class="nav-links">
+            <li onclick="scrollToTop()">Home</li>
+            <li onclick="scrollToSection('features')">Features</li>
+            <li onclick="scrollToSection('about')">About</li>
+            <li onclick="scrollToSection('team')">Team</li>
+            <li onclick="scrollToSection('demo')">Live Demo</li>
+            <li onclick="scrollToSection('contact')">Contact</li>
+            <li id="loginBtn">Login</li>
+            <li id="signupBtn">Signup</li>
+            <li id="userProfileBtn">
+                <div class="profile-icon" id="profileIcon">U</div>
+                <span id="profileName">User</span>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="profile-info">
+                        <p class="user-name" id="dropdownName">User Name</p>
+                        <p class="user-type" id="dropdownType">Account Type</p>
+                        <p style="font-size:12px;color:#666;" id="dropdownEmail">email@example.com</p>
+                    </div>
+                    <div class="dropdown-btn" onclick="goToDashboard()">Dashboard</div>
+                    <div class="dropdown-btn" id="logoutBtn" onclick="logout()">Logout</div>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <video class="hero-video" autoplay muted loop playsinline>
+            <source src="vide" type="video/mp4">
+        </video>
+        <div class="video-overlay"></div>
+        <div class="hero-bg"></div>
+        <div class="grid-bg"></div>
+        <div class="hero-content">
+            <div class="hero-badge">IoT Water Management</div>
+            <h1>SMART WATER<br>PUMP CONTROL</h1>
+            <p>Advanced IoT dashboard for real-time monitoring, automated control,<br>and solar-hybrid optimization
+                of water mine pumps.</p>
+            <div class="cta-buttons">
+                <button class="btn-primary" id="getStartedBtn">GET STARTED</button>
+                <button class="btn-secondary" onclick="scrollToSection('demo')">LIVE DEMO</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+        <div class="section-title">
+            <h2>CUTTING-EDGE TECHNOLOGY</h2>
+            <p>Discover what makes SmartPump the future of water management</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚙</div>
+                <h3>Pump Control</h3>
+                <p>Control your water pump remotely with one click from anywhere in the world. Real-time response and
+                    status updates.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">▼</div>
+                <h3>Water Level</h3>
+                <p>Monitor tank water level in real-time with precision sensors and intelligent threshold alerts.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">≋</div>
+                <h3>Flow Rate</h3>
+                <p>Track water flow through your system with advanced analytics and historical data visualization.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>System Health</h3>
+                <p>Monitor battery, solar panels, and overall system performance with predictive maintenance alerts.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">▲</div>
+                <h3>Data Analytics</h3>
+                <p>Visualize performance trends with interactive graphs and comprehensive historical data analysis.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>AI Insights</h3>
+                <p>Smart alerts and predictive warnings powered by machine learning algorithms for optimal efficiency.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section about-section" id="about">
+        <div class="section-title">
+            <h2>ABOUT THE PROJECT</h2>
+            <p>Innovation meets sustainability</p>
+        </div>
+        <div class="about-content" style="font-size: x-large;">
+            About Us
+
+            We are GREENSPARKS2, a multidisciplinary team of six innovators from the University of Calcutta, West
+            Bengal, India, currently pursuing our second year of B.Tech and united by a shared vision of engineering
+            meaningful real-world impact. Selected for the Smart India Hackathon 2025 Grand Finale for the problem
+            statement “Design and Implementation of Solar-Powered Dewatering in Mining Operations” (PS No. 25072), we
+            are committed to building sustainable, intelligent, and industry-ready solutions. Our Smart Water Mine Pump
+            IoT Dashboard delivers real-time pump monitoring, automated operational control, predictive maintenance, and
+            solar-hybrid optimization to replace costly diesel-based systems and enable low-carbon, high-efficiency
+            dewatering. As a team that believes in continuous learning beyond academic disciplines, we are driven to
+            transform industrial challenges into scalable innovations that support a cleaner, safer, and more reliable
+            future for mining operations. </div>
+    </section>
+
+    <!-- Team Section -->
+    <section class="section" id="team">
+        <div class="section-title">
+            <h2>OUR TEAM</h2>
+            <p>Meet the innovators behind SmartPump</p>
+        </div>
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="team-avatar"><img src="images/rajdeep.jpg" alt="Rajdeep Pal"></div>
+                <h3>RAJDEEP PAL</h3>
+                <span class="role">TEAM LEADER</span>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar"><img src="images/rakesh.jpg" alt="Rakesh Ghosh"></div>
+                <h3>RAKESH GHOSH</h3>
+                <span class="role">TEAM MEMBER</span>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar"><img src="images/souhardya.jpg" alt="Souhardya Maity"></div>
+                <h3>SOUHARDYA MAITY</h3>
+                <span class="role">TEAM MEMBER</span>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar"><img src="images/soumyajit.jpg" alt="Soumyajit Banerjee"></div>
+                <h3>SOUMYAJIT BANERJEE</h3>
+                <span class="role">TEAM MEMBER</span>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar"><img src="images/agradip.jpg" alt="Agradeep Ghosh"></div>
+                <h3>AGRADIP GHOSH</h3>
+                <span class="role">TEAM MEMBER</span>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar"><img src="images/saheli.jpg" alt="Saheli Chatterjee"></div>
+                <h3>SAHELI CHATTERJEE</h3>
+                <span class="role">TEAM MEMBER</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Demo Section -->
+    <section class="section demo-section" id="demo">
+        <div class="section-title">
+            <h2>LIVE DEMONSTRATION</h2>
+            <p>Experience our system in action - fully interactive and connected</p>
+        </div>
+        <div class="demo-grid">
+            <!-- Demo 1: Pump Switch -->
+            <div class="demo-card">
+                <h3>▸ PUMP CONTROL</h3>
+                <div class="pump-switch-container">
+                    <div class="pump-status off" id="pumpStatusDemo">OFF</div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="pumpSwitchDemo">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <p style="color:#888; font-size:14px; margin-top:10px;">Toggle to control water flow</p>
+                </div>
+            </div>
+
+            <!-- Demo 2: Water Tank -->
+            <div class="demo-card">
+                <h3>▼ WATER LEVEL</h3>
+                <div class="water-tank-container">
+                    <div class="tank-top"></div>
+                    <div class="tank">
+                        <div class="water" id="waterFillDemo" style="height: 30%;"></div>
+                    </div>
+                    <div class="water-level-text"><span id="waterLevelText">30</span>%</div>
+                    <p class="water-status" id="waterStatusText">Tank is Low</p>
+                </div>
+            </div>
+
+            <!-- Demo 3: Live Graph -->
+            <div class="demo-card">
+                <h3>▲ ANALYTICS</h3>
+                <div class="chart-container">
+                    <canvas id="demoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact">
+        <div class="contact-container">
+            <div class="section-title">
+                <h2>GET IN TOUCH</h2>
+                <p>Have questions? We'd love to hear from you</p>
+            </div>
+            <form class="contact-form" id="contactForm">
+                <div class="form-group">
+                    <label>Your Name</label>
+                    <input type="text" id="contactName" placeholder="Enter your name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="contactEmail" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="contactPhone" placeholder="Enter your phone number">
+                </div>
+                <div class="form-group">
+                    <label>Subject</label>
+                    <input type="text" id="contactSubject" placeholder="What is this about?" required>
+                </div>
+                <div class="form-group">
+                    <label>Message</label>
+                    <textarea id="contactMessage" placeholder="Write your message here..." required></textarea>
+                </div>
+                <div id="contactFormMessage" class="form-message"></div>
+                <button type="submit" class="submit-btn" id="contactSubmitBtn">SEND MESSAGE</button>
+            </form>
+            <div class="contact-info">
+                <div class="contact-info-item">
+                    <span class="icon">✉</span>
+                    <span>greensparks2official@gmail.com</span>
+                </div>
+                <div class="contact-info-item">
+                    <span class="icon">📱</span>
+                    <span>+91 97496 71134</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li>IoT Dashboard</li>
+                    <li>Pump Controllers</li>
+                    <li>Sensor Systems</li>
+                    <li>Analytics Platform</li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Solutions</h4>
+                <ul>
+                    <li>Water Management</li>
+                    <li>Solar Integration</li>
+                    <li>Remote Monitoring</li>
+                    <li>Automation</li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li>Documentation</li>
+                    <li>API Reference</li>
+                    <li>Community Forum</li>
+                    <li>Contact Support</li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li>About Us</li>
+                    <li>Our Team</li>
+                    <li>Careers</li>
+                    <li>Partners</li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 SmartPump by GREENSPARKS2. All rights reserved. | Built for Smart India Hackathon 2025</p>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <div id="selectModal" class="modal">
+        <div class="modal-box">
+            <h2 id="selectTitle">Choose Account Type</h2>
+            <button class="acc-btn" onclick="choose('OPERATIONAL TEAM')">OPERATIONAL TEAM</button>
+            <button class="acc-btn" onclick="choose('MAINTAINENECE TEAM')">MAINTAINENECE TEAM</button>
+             <button class="acc-btn" onclick="choose('VENDOR MANAGEMENT')">VENDOR MANAGEMENT</button>
+            <button class="acc-btn" onclick="choose('GOVERNMENT REGULATORS')">GOVERNMENT REGULATORS</button>
+            <span class="closeModal" onclick="closeSelect()">×</span>
+        </div>
+    </div>
+
+    <div id="formModal" class="formModal">
+        <div class="form-box">
+            <h2 id="formTitle"></h2>
+            <form id="authForm">
+                <input id="nameField" type="text" placeholder="Your Full Name" class="hidden">
+                <input id="emailField" type="email" placeholder="Email Address" required>
+                <input id="passwordField" type="password" placeholder="Password" required>
+                <button class="btnSubmit" type="submit"></button>
+            </form>
+            <div id="errorMsg" class="error-msg hidden"></div>
+            <div id="successMsg" class="success-msg hidden"></div>
+            <span class="closeModal" onclick="closeForm()">×</span>
+        </div>
+    </div>
+
+    <script>
+        // ========== LIVE DEMO SYSTEM ==========
+        let waterLevel = 30;
+        let pumpIsOn = false;
+        let waterHistory = [30, 30, 30, 30, 30, 30, 30, 30, 30, 30];
+        let timeLabels = ['', '', '', '', '', '', '', '', '', ''];
+        let demoChart;
+
+        // Initialize Chart
+        function initDemoChart() {
+            const ctx = document.getElementById('demoChart').getContext('2d');
+            demoChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [{
+                        label: 'Water Level %',
+                        data: waterHistory,
+                        borderColor: '#76B900',
+                        backgroundColor: 'rgba(118, 185, 0, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#76B900',
+                        pointBorderColor: '#fff',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#888', font: { size: 11 } },
+                            grid: { color: 'rgba(118, 185, 0, 0.1)' }
+                        },
+                        x: {
+                            ticks: { color: '#888', font: { size: 10 } },
+                            grid: { color: 'rgba(118, 185, 0, 0.05)' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 12 } }
+                        }
+                    },
+                    animation: { duration: 300 }
+                }
+            });
+        }
+
+        // Update water level display
+        function updateWaterDisplay() {
+            const waterFill = document.getElementById('waterFillDemo');
+            const waterText = document.getElementById('waterLevelText');
+            const waterStatus = document.getElementById('waterStatusText');
+
+            if (waterFill) waterFill.style.height = waterLevel + '%';
+            if (waterText) waterText.textContent = Math.round(waterLevel);
+
+            if (waterStatus) {
+                if (waterLevel >= 80) {
+                    waterStatus.textContent = '🚨 Tank is Full!';
+                    waterStatus.style.color = '#ff0336';
+                } else if (waterLevel >= 50) {
+                    waterStatus.textContent = '✓ Tank is Good';
+                    waterStatus.style.color = '#76B900';
+                } else if (waterLevel >= 30) {
+                    waterStatus.textContent = '⚠️ Tank is Low';
+                    waterStatus.style.color = '#ffa500';
+                } else {
+                    waterStatus.textContent = '🔴 Tank is Critical!';
+                    waterStatus.style.color = '#ff0336';
+                }
+            }
+        }
+
+        // Update chart
+        function updateChart() {
+            const now = new Date();
+            const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+            waterHistory.push(Math.round(waterLevel));
+            timeLabels.push(timeStr);
+
+            if (waterHistory.length > 10) {
+                waterHistory.shift();
+                timeLabels.shift();
+            }
+
+            if (demoChart) {
+                demoChart.data.labels = timeLabels;
+                demoChart.data.datasets[0].data = waterHistory;
+                demoChart.update('none');
+            }
+        }
+
+        // Pump switch handler
+        const pumpSwitch = document.getElementById('pumpSwitchDemo');
+        const pumpStatus = document.getElementById('pumpStatusDemo');
+
+        if (pumpSwitch) {
+            pumpSwitch.addEventListener('change', function () {
+                pumpIsOn = this.checked;
+
+                if (pumpStatus) {
+                    if (pumpIsOn) {
+                        pumpStatus.textContent = 'ON';
+                        pumpStatus.classList.remove('off');
+                        pumpStatus.classList.add('on');
+                    } else {
+                        pumpStatus.textContent = 'OFF';
+                        pumpStatus.classList.remove('on');
+                        pumpStatus.classList.add('off');
+                    }
+                }
+            });
+        }
+
+        // Simulation loop
+        function simulateWater() {
+            if (pumpIsOn) {
+                if (waterLevel < 100) {
+                    waterLevel += 2;
+                    if (waterLevel > 100) waterLevel = 100;
+                }
+            } else {
+                if (waterLevel > 0) {
+                    waterLevel -= 0.5;
+                    if (waterLevel < 0) waterLevel = 0;
+                }
+            }
+
+            updateWaterDisplay();
+            updateChart();
+        }
+
+        // Initialize demo on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            initDemoChart();
+            updateWaterDisplay();
+            setInterval(simulateWater, 1000);
+        });
+
+        // ========== NAVIGATION & AUTH ==========
+        let actionType = "", userType = "", currentUser = null;
+
+        function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+        function scrollToSection(id) { document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+
+        window.onload = function () {
+            initDemoChart();
+            updateWaterDisplay();
+            setInterval(simulateWater, 1000);
+
+            try {
+                const loggedInUser = localStorage.getItem('loggedInUser');
+                if (loggedInUser) {
+                    const u = JSON.parse(loggedInUser);
+                    if (u && sessionStorage.getItem('isLoggedIn') === 'true') {
+                        currentUser = u;
+                        showLoggedInState();
+                    } else {
+                        showLoggedOutState();
+                    }
+                } else {
+                    showLoggedOutState();
+                }
+            } catch (err) {
+                showLoggedOutState();
+            }
+        };
+
+        function showLoggedInState() {
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
+            const userProfileBtn = document.getElementById('userProfileBtn');
+            const profileIcon = document.getElementById('profileIcon');
+            const profileName = document.getElementById('profileName');
+            const dropdownName = document.getElementById('dropdownName');
+            const dropdownType = document.getElementById('dropdownType');
+            const dropdownEmail = document.getElementById('dropdownEmail');
+
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (signupBtn) signupBtn.style.display = 'none';
+            if (userProfileBtn) userProfileBtn.style.display = 'flex';
+            if (profileIcon && currentUser?.name) profileIcon.textContent = currentUser.name.charAt(0).toUpperCase();
+            if (profileName && currentUser?.name) profileName.textContent = currentUser.name.split(' ')[0];
+            if (dropdownName && currentUser?.name) dropdownName.textContent = currentUser.name;
+            if (dropdownType && currentUser?.userType) dropdownType.textContent = currentUser.userType + ' Account';
+            if (dropdownEmail && currentUser?.email) dropdownEmail.textContent = currentUser.email;
+        }
+
+        function showLoggedOutState() {
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
+            const userProfileBtn = document.getElementById('userProfileBtn');
+
+            if (loginBtn) loginBtn.style.display = 'block';
+            if (signupBtn) signupBtn.style.display = 'block';
+            if (userProfileBtn) userProfileBtn.style.display = 'none';
+        }
+
+        const profileBtn = document.getElementById('userProfileBtn');
+        const profileDropdown = document.getElementById('profileDropdown');
+
+        if (profileBtn) {
+            profileBtn.onclick = function (e) {
+                e.stopPropagation();
+                if (profileDropdown) profileDropdown.classList.toggle('show');
+            };
+        }
+
+        document.addEventListener('click', function (e) {
+            if (profileDropdown && profileBtn && !profileBtn.contains(e.target)) {
+                profileDropdown.classList.remove('show');
+            }
+        });
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('loggedInUser');
+                sessionStorage.removeItem('isLoggedIn');
+                currentUser = null;
+                showLoggedOutState();
+                alert('Logged out successfully!');
+                scrollToTop();
+            }
+        }
+
+        function goToDashboard() { window.location.href = "index.html"; }
+
+        const getStartedBtn = document.getElementById("getStartedBtn");
+        const loginBtn = document.getElementById("loginBtn");
+        const signupBtn = document.getElementById("signupBtn");
+
+        if (getStartedBtn) {
+            getStartedBtn.onclick = function () {
+                if (currentUser) goToDashboard();
+                else { alert('Please signup or login to get started!'); openSelector('signup'); }
+            };
+        }
+
+        if (loginBtn) loginBtn.onclick = () => openSelector("login");
+        if (signupBtn) signupBtn.onclick = () => openSelector("signup");
+
+        function openSelector(type) {
+            actionType = type;
+            const selectTitle = document.getElementById("selectTitle");
+            const selectModal = document.getElementById("selectModal");
+            if (selectTitle) selectTitle.innerText = type === "login" ? "Login as:" : "Signup as:";
+            if (selectModal) selectModal.style.display = "flex";
+        }
+
+        function closeSelect() {
+            const selectModal = document.getElementById("selectModal");
+            if (selectModal) selectModal.style.display = "none";
+        }
+
+        function choose(type) { userType = type; closeSelect(); openForm(); }
+
+        function openForm() {
+            const title = document.getElementById("formTitle");
+            const nameField = document.getElementById("nameField");
+            const btn = document.querySelector(".btnSubmit");
+            document.getElementById("successMsg").classList.add("hidden");
+            document.getElementById("errorMsg").classList.add("hidden");
+            document.getElementById("authForm").reset();
+
+            if (actionType === "login") {
+                title.innerText = `Login as ${userType.charAt(0).toUpperCase() + userType.slice(1)}`;
+                nameField.classList.add("hidden");
+                btn.innerText = "Login";
+            } else {
+                title.innerText = `Signup as ${userType.charAt(0).toUpperCase() + userType.slice(1)}`;
+                nameField.classList.remove("hidden");
+                nameField.setAttribute("required", "required");
+                btn.innerText = "Create Account";
+            }
+            document.getElementById("formModal").style.display = "flex";
+        }
+
+        function closeForm() {
+            const formModal = document.getElementById("formModal");
+            const authForm = document.getElementById("authForm");
+            if (formModal) formModal.style.display = "none";
+            if (authForm) authForm.reset();
+        }
+
+        const authForm = document.getElementById("authForm");
+        if (authForm) {
+            authForm.onsubmit = function (e) {
+                e.preventDefault();
+                const nameField = document.getElementById("nameField");
+                const emailField = document.getElementById("emailField");
+                const passwordField = document.getElementById("passwordField");
+                const successMsg = document.getElementById("successMsg");
+                const errorMsg = document.getElementById("errorMsg");
+
+                const name = nameField ? nameField.value : '';
+                const email = emailField.value.trim().toLowerCase();
+                const password = passwordField.value;
+
+                if (successMsg) successMsg.classList.add("hidden");
+                if (errorMsg) errorMsg.classList.add("hidden");
+
+                let users = JSON.parse(localStorage.getItem('users')) || [];
+
+                if (actionType === "login") {
+                    const user = users.find(u => u.email === email && u.userType === userType);
+                    if (!user) { errorMsg.textContent = "✕ Account not found!"; errorMsg.classList.remove("hidden"); return; }
+                    if (user.password !== password) { errorMsg.textContent = "✕ Incorrect password!"; errorMsg.classList.remove("hidden"); return; }
+
+                    successMsg.innerHTML = `✓ Login successful!<br>Welcome back, ${user.name}!`;
+                    successMsg.classList.remove("hidden");
+                    localStorage.setItem('loggedInUser', JSON.stringify(user));
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    currentUser = user;
+                    setTimeout(() => { closeForm(); showLoggedInState(); goToDashboard(); }, 1500);
+                } else {
+                    if (!name.trim()) { errorMsg.textContent = "✕ Please enter your name!"; errorMsg.classList.remove("hidden"); return; }
+                    if (users.find(u => u.email === email)) { errorMsg.textContent = "✕ Email already registered!"; errorMsg.classList.remove("hidden"); return; }
+                    if (password.length < 6) { errorMsg.textContent = "✕ Password must be at least 6 characters!"; errorMsg.classList.remove("hidden"); return; }
+
+                    const newUser = { name: name.trim(), email, password, userType, createdAt: new Date().toISOString() };
+                    users.push(newUser);
+                    localStorage.setItem('users', JSON.stringify(users));
+                    localStorage.setItem('loggedInUser', JSON.stringify(newUser));
+                    sessionStorage.setItem('isLoggedIn', 'true');
+                    currentUser = newUser;
+
+                    successMsg.innerHTML = `✓ Account created!<br>Welcome, ${name}!`;
+                    successMsg.classList.remove("hidden");
+                    setTimeout(() => { closeForm(); showLoggedInState(); goToDashboard(); }, 1500);
+                }
+            };
+        }
+
+        // Contact form with EmailJS
+        const contactForm = document.getElementById('contactForm');
+        if (contactForm) {
+            contactForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const submitBtn = document.getElementById('contactSubmitBtn');
+                const formMessage = document.getElementById('contactFormMessage');
+
+                const formData = {
+                    name: document.getElementById('contactName').value.trim(),
+                    email: document.getElementById('contactEmail').value.trim(),
+                    phone: document.getElementById('contactPhone')?.value.trim() || '',
+                    subject: document.getElementById('contactSubject').value.trim(),
+                    message: document.getElementById('contactMessage').value.trim(),
+                    timestamp: new Date().toISOString()
+                };
+
+                if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+                    formMessage.className = 'form-message error';
+                    formMessage.textContent = '✕ Please fill in all required fields.';
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'SENDING...';
+
+                try {
+                    // Save backup
+                    let contacts = JSON.parse(localStorage.getItem('contactSubmissions')) || [];
+                    contacts.push(formData);
+                    localStorage.setItem('contactSubmissions', JSON.stringify(contacts));
+
+                    // Send email via EmailJS
+                    await emailjs.send(
+                        EMAILJS_CONFIG.serviceID,
+                        EMAILJS_CONFIG.templateID,
+                        {
+                            from_name: formData.name,
+                            from_email: formData.email,
+                            phone: formData.phone || 'Not provided',
+                            subject: formData.subject,
+                            message: formData.message,
+                            to_email: 'greensparks2official@gmail.com'
+                        }
+                    );
+
+                    formMessage.className = 'form-message success';
+                    formMessage.innerHTML = '✓ Message sent successfully!<br>We\'ll get back to you soon.';
+                    contactForm.reset();
+                } catch (err) {
+                    formMessage.className = 'form-message error';
+                    formMessage.innerHTML = '✕ Failed to send email.<br>Message saved locally.';
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'SEND MESSAGE';
+                setTimeout(() => { formMessage.className = 'form-message'; }, 7000);
+            });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+
+        // Initialize particles with mobile optimization
+        const isMobile = window.innerWidth <= 768;
+        // Reduce particles on mobile for better performance
+        const particleCount = isMobile ? 15 : 30;
+        particlesJS('particles-js', {
+            particles: {
+                number: {
+                    value: particleCount,
+                    density: {
+                        enable: true,
+                        value_area: isMobile ? 300 : 600
+                    }
+                },
+                color: { value: '#76b900' },
+                shape: { type: 'circle' },
+                opacity: {
+                    value: isMobile ? 0.7 : 0.5,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 1,
+                        opacity_min: isMobile ? 0.2 : 0.1,
+                        sync: false
+                    }
+                },
+                size: {
+                    value: isMobile ? 2 : 3,
+                    random: true,
+                    anim: {
+                        enable: true,
+                        speed: 2,
+                        size_min: 0.1,
+                        sync: false
+                    }
+                },
+                line_linked: {
+                    enable: true,
+                    distance: isMobile ? 100 : 150,
+                    color: '#76b900',
+                    opacity: isMobile ? 0.5 : 0.3,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: isMobile ? 0.5 : 1,
+                    direction: 'none',
+                    random: true,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: {
+                        enable: !isMobile, // Disable hover on mobile
+                        mode: 'grab'
+                    },
+                    onclick: {
+                        enable: !isMobile, // Disable click on mobile
+                        mode: 'push'
+                    },
+                    resize: true
+                },
+                modes: {
+                    grab: {
+                        distance: isMobile ? 80 : 140,
+                        line_linked: { opacity: 0.8 }
+                    },
+                    push: { particles_nb: isMobile ? 2 : 4 }
+                }
+            },
+            retina_detect: true
+        });
+
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', function () {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function () {
+                const newIsMobile = window.innerWidth <= 768;
+                if (isMobile !== newIsMobile) {
+                    window.location.reload();
+                }
+            }, 250);
+        });
+        
+    </script>
+</body>
+
+
+
+</html>
