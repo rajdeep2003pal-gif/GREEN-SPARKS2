@@ -1,0 +1,344 @@
+/* ESP32 Gateway - LoRa Receiver to Firebase
+   Receives telemetry from ESP32-S3 via LoRa and uploads to Firebase
+   Sends commands from Firebase to ESP32-S3 via LoRa
+*/
+
+#include <WiFi.h>
+#include <FirebaseESP32.h>
+#include <addons/TokenHelper.h>
+#include <addons/RTDBHelper.h>
+#include <SPI.h>
+#include <LoRa.h>
+
+// ========== WiFi Credentials ==========
+#define WIFI_SSID "Airtel_Nostalgia66"
+#define WIFI_PASSWORD "Anime123Nostalgia"
+
+// ========== Firebase Credentials ==========
+#define DATABASE_URL "https://mine-dewatering-system-default-rtdb.asia-southeast1.firebasedatabase.app/"
+#define DATABASE_SECRET "JtggFVHjvfF6L8PjEJydZNeQXrkLGZLlGtmk9O00"
+
+// ========== LoRa Pins (ESP32 Default SPI) ==========
+#define LORA_SCK 18
+#define LORA_MISO 19
+#define LORA_MOSI 23
+#define LORA_SS 5
+#define LORA_RST 14
+#define LORA_DIO0 2
+#define LORA_FREQ 433E6
+
+// ========== Firebase Objects ==========
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+// ========== Device ID ==========
+const char* DEVICE_ID = "device01";
+
+// ========== Timing ==========
+unsigned long lastCommandCheck = 0;
+const unsigned long COMMAND_CHECK_INTERVAL = 500;
+unsigned long lastStatusUpdate = 0;
+const unsigned long STATUS_UPDATE_INTERVAL = 10000;
+
+bool firebaseReady = false;
+bool loraReady = false;
+unsigned long lastLoRaReceive = 0;
+String deviceStatus = "offline";
+
+// ========== Setup ==========
+void setup() {
+  Serial.begin(115200);
+  delay(100);
+  Serial.println("\n=== ESP32 Gateway: LoRa → Firebase ===");
+
+  // ---------- WiFi Setup ----------
+  Serial.print("Connecting to WiFi");
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✓ WiFi Connected!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\n✗ WiFi Connection Failed!");
+    while(1);
+  }
+
+  // ---------- Firebase Setup ----------
+  Serial.println("\nSetting up Firebase with Database Secret...");
+  
+  config.database_url = DATABASE_URL;
+  config.signer.tokens.legacy_token = DATABASE_SECRET;
+  
+  Firebase.reconnectWiFi(true);
+  Firebase.begin(&config, &auth);
+  
+  delay(2000);
+  
+  Serial.println("Testing Firebase connection...");
+  
+  // Test write
+  if (Firebase.setString(fbdo, "telemetry/device01/status", "gateway_online")) {
+    Serial.println("✓ Firebase connection successful!");
+    firebaseReady = true;
+  } else {
+    Serial.println("✗ Firebase connection failed!");
+    Serial.print("Error: ");
+    Serial.println(fbdo.errorReason());
+  }
+
+  // ---------- LoRa Setup ----------
+  Serial.println("\nSetting up LoRa...");
+  
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
+  LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+  
+  if (LoRa.begin(LORA_FREQ)) {
+    Serial.println("✓ LoRa initialized successfully!");
+    LoRa.setTxPower(17);
+    LoRa.setSpreadingFactor(7);
+    LoRa.setSignalBandwidth(125E3);
+    loraReady = true;
+  } else {
+    Serial.println("✗ LoRa initialization failed!");
+  }
+  
+  Serial.println("\n--- Gateway Ready ---");
+  Serial.println("Waiting for LoRa telemetry from ESP32-S3...\n");
+}
+
+// ========== Helper: Extract Float ==========
+float extractFloat(String data, String key) {
+  int idx = data.indexOf(key);
+  if (idx == -1) return 0.0;
+  idx += key.length();
+  int endIdx = data.indexOf(',', idx);
+  if (endIdx == -1) endIdx = data.indexOf('}', idx);
+  return data.substring(idx, endIdx).toFloat();
+}
+
+// ========== Helper: Extract Int ==========
+int extractInt(String data, String key) {
+  int idx = data.indexOf(key);
+  if (idx == -1) return 0;
+  idx += key.length();
+  int endIdx = data.indexOf(',', idx);
+  if (endIdx == -1) endIdx = data.indexOf('}', idx);
+  return data.substring(idx, endIdx).toInt();
+}
+
+// ========== Parse Telemetry from LoRa ==========
+// Expected format: "TELE:{v:7.85,batt:92.5,I:150.2,p:1870.5,flow:2.35,dist:25.3,ldrL:2048,ldrR:1850,light:47.5,servo:95,pump:1}"
+void parseTelemetry(String data) {
+  Serial.println("📡 LoRa Received: " + data);
+  
+  if (!data.startsWith("TELE:{") || !data.endsWith("}")) {
+    Serial.println("✗ Invalid telemetry format");
+    return;
+  }
+  
+  // Extract all values
+  float voltage = extractFloat(data, "v:");
+  float battPercent = extractFloat(data, "batt:");
+  float current = extractFloat(data, "I:");
+  float power = extractFloat(data, "p:");
+  float flowRate = extractFloat(data, "flow:");
+  float distance = extractFloat(data, "dist:");
+  int ldrLeft = extractInt(data, "ldrL:");
+  int ldrRight = extractInt(data, "ldrR:");
+  float lightPct = extractFloat(data, "light:");
+  int servoAngle = extractInt(data, "servo:");
+  int pump = extractInt(data, "pump:");
+  
+  // Get LoRa signal quality
+  int rssi = LoRa.packetRssi();
+  float snr = LoRa.packetSnr();
+  
+  // Calculate water level from distance (adjust tank height as needed)
+  const float TANK_HEIGHT = 13.0; // cm
+  float waterLevel = ((TANK_HEIGHT - distance) / TANK_HEIGHT) * 100.0;
+  if (waterLevel < 0) waterLevel = 0;
+  if (waterLevel > 100) waterLevel = 100;
+  
+  Serial.println("--- Parsed Data ---");
+  Serial.printf("Voltage: %.2fV (%.1f%%) | Current: %.1fmA | Power: %.1fmW\n", voltage, battPercent, current, power);
+  Serial.printf("Flow: %.2f L/min | Distance: %.1fcm | Water Level: %.1f%%\n", flowRate, distance, waterLevel);
+  Serial.printf("LDR L:%d R:%d (%.1f%% avg light) | Servo: %d° | Pump: %s\n", 
+                ldrLeft, ldrRight, lightPct, servoAngle, pump ? "ON" : "OFF");
+  Serial.printf("LoRa RSSI: %d dBm | SNR: %.1f dB\n", rssi, snr);
+  
+  // Upload to Firebase
+  uploadToFirebase(voltage, battPercent, current, power, flowRate, waterLevel, 
+                   ldrLeft, ldrRight, lightPct, servoAngle, pump ? "ON" : "OFF", rssi, snr);
+  
+  lastLoRaReceive = millis();
+  deviceStatus = "online";
+}
+
+// ========== Upload to Firebase ==========
+void uploadToFirebase(float voltage, float battPercent, float current, float power, float flowRate, 
+                      float waterLevel, int ldrLeft, int ldrRight, float lightPct, int servoAngle,
+                      String pumpStatus, int rssi, float snr) {
+
+  if (!firebaseReady) {
+    Serial.println("✗ Firebase not ready - skipping upload");
+    return;
+  }
+  
+  String path = "telemetry/" + String(DEVICE_ID);
+  
+  // Create JSON object
+  FirebaseJson json;
+  json.set("voltage", voltage);
+  json.set("batteryLevelManual", battPercent);
+  json.set("solar", lightPct);
+  json.set("current", current);
+  json.set("power", power);
+  json.set("loraRSSI", rssi);
+  json.set("loraSNR", snr);
+  json.set("flowRate", flowRate);
+  json.set("waterLevel", waterLevel);
+  json.set("ldrLeft", ldrLeft);
+  json.set("ldrRight", ldrRight);
+  json.set("servoAngle", servoAngle);
+  json.set("dust", 100 - lightPct);
+  json.set("pumpStatus", pumpStatus);
+  json.set("status", "online");
+  json.set("timestamp", String(millis()));
+  
+  // Update Firebase
+  if (Firebase.updateNode(fbdo, path, json)) {
+    Serial.println("✓ Data uploaded to Firebase successfully!");
+    
+    // Update timestamp
+    if (Firebase.setTimestamp(fbdo, path + "/loraLastUpdate")) {
+      Serial.println("✓ Timestamp updated");
+    }
+  } else {
+    Serial.println("✗ Upload failed!");
+    Serial.print("Error: ");
+    Serial.println(fbdo.errorReason());
+  }
+  Serial.println();
+}
+
+// ========== Check Firebase for Commands ==========
+void checkFirebaseCommands() {
+  if (!firebaseReady || !loraReady) return;
+  
+  // Track last known pump status
+  static String lastPumpStatus = "";
+  static bool firstRun = true;
+  
+  String statusPath = "telemetry/" + String(DEVICE_ID) + "/pumpStatus";
+  
+  if (Firebase.getString(fbdo, statusPath)) {
+    String newStatus = fbdo.stringData();
+    
+    // Initialize on first run (don't send command)
+    if (firstRun) {
+      lastPumpStatus = newStatus;
+      firstRun = false;
+      Serial.print("🔷 Initial pump status: ");
+      Serial.println(newStatus);
+      return;
+    }
+    
+    // Only send LoRa command if status changed
+    if (newStatus != lastPumpStatus) {
+      Serial.print("📥 Firebase Status Changed: ");
+      Serial.print(lastPumpStatus);
+      Serial.print(" → ");
+      Serial.println(newStatus);
+      
+      if (newStatus == "ON") {
+        Serial.println("📤 Sending LoRa: PUMP:1");
+        sendLoRaCommand("PUMP:1");
+      }
+      else if (newStatus == "OFF") {
+        Serial.println("📤 Sending LoRa: PUMP:0");
+        sendLoRaCommand("PUMP:0");
+      }
+      
+      lastPumpStatus = newStatus;
+    }
+  }
+}
+
+// ========== Send Command via LoRa ==========
+void sendLoRaCommand(String cmd) {
+  Serial.println("📤 Sending LoRa: " + cmd);
+  
+  // Send command 3 times for reliability
+  for (int i = 0; i < 3; i++) {
+    LoRa.beginPacket();
+    LoRa.print(cmd);
+    LoRa.endPacket();
+    delay(200);
+    Serial.print("  Retry ");
+    Serial.println(i + 1);
+  }
+  
+  Serial.println("✓ Command sent with retries");
+}
+
+// ========== Update Device Status ==========
+void updateDeviceStatus() {
+  if (!firebaseReady) return;
+  
+  // Check if device is offline (no data for 20 seconds)
+  if (millis() - lastLoRaReceive > 20000 && lastLoRaReceive > 0) {
+    deviceStatus = "offline";
+    Serial.println("⚠️ Device marked OFFLINE - no data for 20+ seconds");
+  }
+  
+  String statusPath = "telemetry/" + String(DEVICE_ID) + "/status";
+  Firebase.setString(fbdo, statusPath, deviceStatus);
+}
+
+// ========== Main Loop ==========
+void loop() {
+  unsigned long now = millis();
+  
+  // ---- Check for incoming LoRa packets ----
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    String message = "";
+    while (LoRa.available()) {
+      message += (char)LoRa.read();
+    }
+    message.trim();
+    
+    if (message.length() > 0) {
+      if (message.startsWith("TELE:")) {
+        parseTelemetry(message);
+      } else if (message.startsWith("ACK:")) {
+        Serial.println("📡 LoRa ACK: " + message);
+      } else {
+        Serial.println("📡 LoRa Message: " + message);
+      }
+    }
+  }
+  
+  // ---- Check Firebase for commands ----
+  if (now - lastCommandCheck >= COMMAND_CHECK_INTERVAL) {
+    checkFirebaseCommands();
+    lastCommandCheck = now;
+  }
+  
+  // ---- Update device status ----
+  if (now - lastStatusUpdate >= STATUS_UPDATE_INTERVAL) {
+    updateDeviceStatus();
+    lastStatusUpdate = now;
+  }
+  
+  delay(10);
+}
