@@ -1,0 +1,338 @@
+/* ESP32-S3 Full System (NO PWM – NO LEDC – NO TIMER – NO AUDIO)
+   CLEAN + COMPILABLE on ESP32 Core v3.x (ESP-IDF 5.x)
+
+   Sensors:
+   - INA219 (SDA=8, SCL=9)
+   - Flow YF-S201 (pulse -> 4)
+   - Ultrasonic (TRIG=10, ECHO=11)
+   - LDR Left -> 35, LDR Right -> 36
+   - LoRa: SCK=18, MOSI=20, MISO=19, NSS=5, RST=2, DIO0=6
+   - Servo -> 7
+
+   Pump (L298N):
+   - IN1 = 12
+   - IN2 = 13
+   - ENA = 14 (always HIGH)
+   
+   Battery: 8V max, 4000mAh capacity
+*/
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_INA219.h>
+#include <SPI.h>
+#include <LoRa.h>
+#include <ESP32Servo.h>
+
+// ========== COMMAND TIMEOUT ==========
+unsigned long lastCommandTime = 0;
+const unsigned long COMMAND_TIMEOUT = 30000;  // 30 seconds
+
+// ----------- PIN MAP -----------
+#define INA219_SDA_PIN 8
+#define INA219_SCL_PIN 9
+
+#define FLOW_PIN 4
+
+#define US_TRIG_PIN 10
+#define US_ECHO_PIN 11
+
+#define L298_IN1 12
+#define L298_IN2 13
+#define L298_ENA 14
+
+#define LDR_LEFT_PIN 7    // ADC pin for left LDR (GPIO7)
+#define LDR_RIGHT_PIN 3   // ADC pin for right LDR (GPIO3)
+
+#define SERVO_PIN 15      // PWM pin for servo signal
+
+#define LORA_SCK 18
+#define LORA_MISO 19
+#define LORA_MOSI 20
+#define LORA_SS 5
+#define LORA_RST 2
+#define LORA_DIO0 6
+#define LORA_FREQ 433E6
+
+// ----------- BATTERY CONFIG -----------
+#define BATTERY_MAX_VOLTAGE 8.0
+#define BATTERY_MIN_VOLTAGE 6.0
+#define BATTERY_CAPACITY_MAH 4000
+
+#define SERVO_MIN_ANGLE 0
+#define SERVO_MAX_ANGLE 180
+#define SERVO_CENTER 90
+#define LDR_THRESHOLD 100
+
+// ----------- GLOBALS -----------
+Adafruit_INA219 ina219;
+volatile uint32_t pulseCount = 0;
+float flowRate_Lpm = 0;
+unsigned long lastFlowTime = 0;
+const float PULSES_PER_LITER = 7.5;
+
+unsigned long lastTele = 0;
+const unsigned long TELE_INTERVAL = 5000;
+
+bool pumpOn = false;
+
+Servo solarServo;
+int currentServoAngle = SERVO_CENTER;
+unsigned long lastServoMove = 0;
+const unsigned long SERVO_INTERVAL = 2000;
+
+// ----------- LDR Data Structure (MOVED BEFORE USAGE) -----------
+struct LDRData {
+  int leftRaw;
+  int rightRaw;
+  float leftPercent;
+  float rightPercent;
+  float average;
+};
+
+// ----------- ISR -----------
+void IRAM_ATTR onPulse() {
+  pulseCount = pulseCount + 1;
+}
+
+// ----------- Battery Percentage Calculation -----------
+float calculateBatteryPercent(float voltage) {
+  if (voltage >= BATTERY_MAX_VOLTAGE) return 100.0;
+  if (voltage <= BATTERY_MIN_VOLTAGE) return 0.0;
+  float percent = ((voltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100.0;
+  return percent;
+}
+
+// ----------- Read LDRs -----------
+LDRData readLDRs() {
+  LDRData data;
+  data.leftRaw = analogRead(LDR_LEFT_PIN);
+  data.rightRaw = analogRead(LDR_RIGHT_PIN);
+  data.leftPercent = (data.leftRaw / 4095.0) * 100.0;
+  data.rightPercent = (data.rightRaw / 4095.0) * 100.0;
+  data.average = (data.leftPercent + data.rightPercent) / 2.0;
+  return data;
+}
+
+// ----------- Update Servo Position -----------
+void updateServoPosition() {
+  LDRData ldr = readLDRs();
+  int difference = ldr.leftRaw - ldr.rightRaw;
+
+  if (abs(difference) > LDR_THRESHOLD) {
+    if (difference > 0) {
+      currentServoAngle -= 5;
+      if (currentServoAngle < SERVO_MIN_ANGLE) currentServoAngle = SERVO_MIN_ANGLE;
+    } else {
+      currentServoAngle += 5;
+      if (currentServoAngle > SERVO_MAX_ANGLE) currentServoAngle = SERVO_MAX_ANGLE;
+    }
+
+    solarServo.write(currentServoAngle);
+    Serial.print("Servo moved to: ");
+    Serial.print(currentServoAngle);
+    Serial.print("° | L: ");
+    Serial.print(ldr.leftRaw);
+    Serial.print(" R: ");
+    Serial.println(ldr.rightRaw);
+  }
+}
+
+// ----------- Ultrasonic -----------
+float measureDistanceCM() {
+  digitalWrite(US_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(US_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(US_TRIG_PIN, LOW);
+
+  unsigned long d = pulseIn(US_ECHO_PIN, HIGH, 30000);
+  if (d == 0) return -1;
+  return d / 58.0;
+}
+
+// ----------- Pump Control -----------
+void pumpSet(bool on) {
+  pumpOn = on;
+  if (on) {
+    digitalWrite(L298_IN1, HIGH);
+    digitalWrite(L298_IN2, LOW);
+    digitalWrite(L298_ENA, HIGH);
+  } else {
+    digitalWrite(L298_IN1, LOW);
+    digitalWrite(L298_IN2, LOW);
+    digitalWrite(L298_ENA, LOW);
+  }
+}
+
+// ----------- Telemetry Format -----------
+String makeTelemetry(float bv, float battPercent, float imA, float pwr, float flow, float dist,
+                     int ldrL, int ldrR, float lightPct, int servoAngle) {
+  char buf[300];
+  snprintf(buf, sizeof(buf),
+           "TELE:{v:%.2f,batt:%.1f,I:%.1f,p:%.1f,flow:%.2f,dist:%.1f,ldrL:%d,ldrR:%d,light:%.1f,servo:%d,pump:%d}",
+           bv, battPercent, imA, pwr, flow, dist, ldrL, ldrR, lightPct, servoAngle, pumpOn ? 1 : 0);
+  return String(buf);
+}
+
+// ----------- Setup -----------
+void setup() {
+  Serial.begin(115200);
+  delay(50);
+
+  // INA219
+  Wire.begin(INA219_SDA_PIN, INA219_SCL_PIN);
+  ina219.begin();
+  ina219.setCalibration_32V_2A();
+
+  // Flow
+  pinMode(FLOW_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(FLOW_PIN), onPulse, RISING);
+
+  // Ultrasonic
+  pinMode(US_TRIG_PIN, OUTPUT);
+  pinMode(US_ECHO_PIN, INPUT);
+
+  // L298N Pump
+  pinMode(L298_IN1, OUTPUT);
+  pinMode(L298_IN2, OUTPUT);
+  pinMode(L298_ENA, OUTPUT);
+  pumpSet(false);
+
+  // ADC
+  analogReadResolution(12);
+
+  // Servo
+  solarServo.attach(SERVO_PIN);
+  solarServo.write(SERVO_CENTER);
+  currentServoAngle = SERVO_CENTER;
+
+  // LoRa
+  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_SS);
+  LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+  LoRa.begin(LORA_FREQ);
+  LoRa.setTxPower(17);
+
+  lastFlowTime = millis();
+  lastTele = millis();
+
+  Serial.println("READY – Listening for LoRa commands...");
+  Serial.println("Battery: 8V max, 4000mAh capacity");
+}
+
+// ----------- Command Handler -----------
+void handleCommand(String cmd) {
+  Serial.print("CMD: ");
+  Serial.println(cmd);
+  lastCommandTime = millis();
+
+  if (cmd == "PUMP:1") {
+    pumpSet(true);
+    LoRa.beginPacket();
+    LoRa.print("ACK:PUMP:1");
+    LoRa.endPacket();
+  } else if (cmd == "PUMP:0") {
+    pumpSet(false);
+    LoRa.beginPacket();
+    LoRa.print("ACK:PUMP:0");
+    LoRa.endPacket();
+  } else if (cmd == "REQ:TELE") {
+    float bus = ina219.getBusVoltage_V();
+    float shunt = ina219.getShuntVoltage_mV();
+    float cur = ina219.getCurrent_mA();
+    float pwr = ina219.getPower_mW();
+    float batt = bus + shunt / 1000.0;
+    float battPercent = calculateBatteryPercent(batt);
+
+    float dist = measureDistanceCM();
+    LDRData ldrData = readLDRs();
+    String tele = makeTelemetry(batt, battPercent, cur, pwr, flowRate_Lpm, dist,
+                                ldrData.leftRaw, ldrData.rightRaw, ldrData.average, currentServoAngle);
+    
+    LoRa.beginPacket();
+    LoRa.print(tele);
+    LoRa.endPacket();
+
+    Serial.println(tele);
+  }
+}
+
+// ----------- Check Command Timeout -----------
+void checkCommandTimeout() {
+  if (pumpOn && (millis() - lastCommandTime > COMMAND_TIMEOUT)) {
+    Serial.println("⚠️ Command timeout - auto stopping pump for safety");
+    pumpSet(false);
+    lastCommandTime = millis();
+  }
+}
+
+// ----------- Loop -----------
+void loop() {
+  unsigned long now = millis();
+
+  // Flow measurement every 1s
+  if (now - lastFlowTime >= 1000) {
+    noInterrupts();
+    uint32_t pulses = pulseCount;
+    pulseCount = 0;
+    interrupts();
+
+    Serial.print("DEBUG - Pulses/sec: ");
+    Serial.print(pulses);
+
+    float liters = pulses / PULSES_PER_LITER;
+    flowRate_Lpm = liters * 60.0;
+
+    Serial.print(" | Calculated Flow: ");
+    Serial.print(flowRate_Lpm);
+    Serial.println(" L/min");
+
+    lastFlowTime = now;
+  }
+
+  // Servo position update
+  if (now - lastServoMove >= SERVO_INTERVAL) {
+    updateServoPosition();
+    lastServoMove = now;
+  }
+
+  // Check command timeout
+  checkCommandTimeout();
+
+  // LoRa RX
+  int packet = LoRa.parsePacket();
+  if (packet) {
+    String msg = "";
+    while (LoRa.available()) msg += (char)LoRa.read();
+    msg.trim();
+    if (msg.length()) handleCommand(msg);
+  }
+
+  // Periodic Telemetry
+  if (now - lastTele >= TELE_INTERVAL) {
+    float bus = ina219.getBusVoltage_V();
+    float shunt = ina219.getShuntVoltage_mV();
+    float cur = ina219.getCurrent_mA();
+    float pwr = ina219.getPower_mW();
+    float batt = bus + shunt / 1000.0;
+    float battPercent = calculateBatteryPercent(batt);
+
+    float dist = measureDistanceCM();
+    LDRData ldrData = readLDRs();
+    String tele = makeTelemetry(batt, battPercent, cur, pwr, flowRate_Lpm, dist,
+                                ldrData.leftRaw, ldrData.rightRaw, ldrData.average, currentServoAngle);
+    
+    Serial.print(tele);
+    Serial.print(" | Batt: ");
+    Serial.print(battPercent, 1);
+    Serial.print("% | Light: ");
+    Serial.print(ldrData.average, 1);
+    Serial.println("%");
+
+    LoRa.beginPacket();
+    LoRa.print(tele);
+    LoRa.endPacket();
+
+    lastTele = now;
+  }
+}
