@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%;">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Water Mine Pump Dashboard</title>
+  <style>
+    /* Rain Alert Banner */
+    .rain-alert {
+      background: linear-gradient(90deg, #ff4d4d, #ff1a1a);
+      color: white;
+      padding: 12px 20px;
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+      position: relative;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      animation: pulse 2s infinite;
+    }
+    
+    .rain-alert-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+    }
+    
+    .rain-alert-icon {
+      font-size: 1.5rem;
+      animation: bounce 1s infinite;
+    }
+    
+    .rain-alert-text {
+      flex-grow: 1;
+      text-align: center;
+    }
+    
+    .rain-alert-dismiss {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+    
+    .rain-alert-dismiss:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.95; }
+      50% { opacity: 1; }
+      100% { opacity: 0.95; }
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+    
+    /* Add home button styles */
+    #homeBtn {
+      background: transparent;
+      border: 2px solid #76b900;
+      color: #76b900;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      display: none;
+      /* Hide by default */
+
+      /* Show only on larger screens */
+      @media (min-width: 1025px) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: rgba(118, 185, 0, 0.1);
+        border: 2px solid #76b900;
+        color: #76b900;
+        font-size: 20px;
+        transition: all 0.3s ease;
+      }
+
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      min-height: 36px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #homeBtn:hover {
+      background: rgba(118, 185, 0, 0.1);
+      box-shadow: 0 0 15px rgba(118, 185, 0, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Modern Popup Design */
+    .savings-popup {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .savings-popup.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .popup-content {
+      background: linear-gradient(145deg, #1a1e2b, #1f2430);
+      border-radius: 16px;
+      padding: 0;
+      width: 95%;
+      max-width: 1000px;
+      max-height: 90vh;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+      transform: translateY(20px);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .savings-popup.show .popup-content {
+      transform: translateY(0);
+    }
+
+    /* Header */
+    .popup-header {
+      position: relative;
+      padding: 1.5rem 2rem;
+      background: linear-gradient(90deg, #1e88e5, #0d47a1);
+      color: white;
+      text-align: center;
+    }
+
+    .popup-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .close-popup {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      transition: all 0.3s ease;
+      border: none;
+      outline: none;
+      padding: 0;
+      backdrop-filter: blur(5px);
+    }
+
+    .close-popup:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: rotate(90deg);
+    }
+
+    /* Content */
+    .popup-body {
+      padding: 2rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    /* Stat Card */
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #1e88e5, #0d47a1);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: #1e88e5;
+    }
+
+    .stat-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e0e0e0;
+      margin-bottom: 1.5rem;
+      position: relative;
+      display: inline-block;
+    }
+
+    .stat-title::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, #1e88e5, #0d47a1);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      margin: 0.5rem 0;
+      background: linear-gradient(135deg, #fff, #e0e0e0);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #a0a0a0;
+      margin-top: 0.5rem;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .popup-content {
+        width: 95%;
+        margin: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .popup-header {
+        padding: 1.25rem 1.5rem;
+      }
+
+      .popup-header h2 {
+        font-size: 1.25rem;
+      }
+    }
+
+    /* Make savings cards clickable */
+    .savings-stat-card {
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .savings-stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Email notification button styles */
+    #emailNotificationToggle {
+      background: transparent;
+      border: 2px solid #00d9ff;
+      color: #00d9ff;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #emailNotificationToggle:hover {
+      background: rgba(0, 217, 255, 0.1);
+      box-shadow: 0 0 15px rgba(0, 217, 255, 0.3);
+    }
+
+    #emailNotificationToggle.enabled {
+      background: linear-gradient(135deg, #00d9ff, #00a8cc);
+      border-color: transparent;
+      color: #000;
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+
+      #homeBtn,
+      #emailNotificationToggle {
+        flex: 1 1 calc(50% - 0.2rem);
+        min-width: 100px;
+        max-width: none;
+        font-size: 0.65rem;
+        padding: 0.4rem 0.6rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+
+      #homeBtn,
+      #emailNotificationToggle {
+        font-size: 0.6rem;
+        padding: 0.35rem 0.5rem;
+        width: 100%;
+        max-width: 100%;
+        flex: 1 1 100%;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Google Translate -->
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({ pageLanguage: 'en' }, 'google_translate_element');
+    }
+  </script>
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+  <!-- EmailJS SDK -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function () {
+      emailjs.init("BOv1N_XamnuD--Nv4"); // ✓ Your actual public key
+    })();
+  </script>
+</head>
+
+<body style="position: relative; min-height: 100%; top: 0px;" cz-shortcut-listen="true">
+  <!-- Rain Danger Alert Banner -->
+  <div id="rainAlertBanner" class="rain-alert">
+    <div class="rain-alert-content">
+      <span class="rain-alert-icon">⚠️</span>
+      <div class="rain-alert-text">
+        <strong>RAIN ALERT:</strong> Heavy rainfall predicted in your area within the next 24 hours. 
+        <span id="rainAlertDetails">Expected: 45mm, Duration: 6 hours, Risk: High</span>
+      </div>
+      <button id="dismissRainAlert" class="rain-alert-dismiss">×</button>
+    </div>
+  </div>
+
+  <script>
+    // Handle rain alert dismissal
+    document.addEventListener('DOMContentLoaded', function() {
+      const dismissBtn = document.getElementById('dismissRainAlert');
+      const rainAlert = document.getElementById('rainAlertBanner');
+      
+      // Always show the alert by default
+      rainAlert.style.display = 'block';
+      // Clear any previous dismiss state
+      localStorage.removeItem('rainAlertDismissed');
+      
+      // Handle dismiss button click
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', function() {
+          rainAlert.style.display = 'none';
+          localStorage.setItem('rainAlertDismissed', 'true');
+          
+          // No auto-reappear - alert stays hidden until page refresh
+        });
+      }
+      
+      // Update rain alert details periodically
+      function updateRainAlert() {
+        // In a real implementation, this would fetch from a weather API
+        const now = new Date();
+        const options = { hour: '2-digit', minute: '2-digit' };
+        const timeString = now.toLocaleTimeString('en-US', options);
+        document.getElementById('rainAlertDetails').textContent = 
+          `Last updated: ${timeString} | Expected: 45mm | Duration: 6 hours | Risk: High`;
+      }
+      
+      // Update immediately and then every 30 minutes
+      updateRainAlert();
+      setInterval(updateRainAlert, 30 * 60 * 1000);
+    });
+    
+    // Check if user is logged in - redirect only if NOT logged in
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+      // Also check localStorage as backup
+      const loggedInUser = localStorage.getItem('loggedInUser');
+      if (!loggedInUser) {
+        window.location.href = 'login.html';
+      } else {
+        // User exists in localStorage but not in sessionStorage - restore session
+        sessionStorage.setItem('isLoggedIn', 'true');
+      }
+    }
+  </script>
+
+  <style>
+    /* Mobile Menu Styles */
+    .mobile-menu-btn {
+      display: none;
+      /* Hidden by default */
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 21px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 1001;
+    }
+
+    .mobile-menu-btn span {
+      display: block;
+      width: 100%;
+      height: 3px;
+      background: #76B900;
+      border-radius: 3px;
+      transition: all 0.3s ease;
+    }
+
+    .mobile-menu-btn.active span:nth-child(1) {
+      transform: translateY(9px) rotate(45deg);
+    }
+
+    .mobile-menu-btn.active span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .mobile-menu-btn.active span:nth-child(3) {
+      transform: translateY(-9px) rotate(-45deg);
+    }
+
+    /* Mobile Menu Overlay */
+    .mobile-menu-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .mobile-menu-overlay.active {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Mobile Navigation */
+    .mobile-nav {
+      position: fixed;
+      top: 0;
+      right: -100%;
+      width: 280px;
+      height: 100%;
+      background: #1a1a1a;
+      box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      transition: right 0.3s ease-in-out;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-nav.active {
+      right: 0;
+    }
+
+    .mobile-nav-content {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mobile-nav-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #333;
+      margin-bottom: 20px;
+    }
+
+    .mobile-nav-header h3 {
+      color: #76B900;
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .close-menu-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px 10px;
+    }
+
+    .mobile-nav-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mobile-nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 15px;
+      background: #2a2a2a;
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .mobile-nav-btn img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+
+    .mobile-nav-btn:hover {
+      background: #333;
+      transform: translateX(3px);
+    }
+
+    .mobile-nav-btn.logout-btn {
+      background: #ff4d4d;
+      margin-top: 20px;
+    }
+
+    .mobile-nav-btn.logout-btn:hover {
+      background: #ff3333;
+    }
+
+    .mobile-nav.active {
+      right: 0;
+    }
+
+    .mobile-nav .header-actions {
+      display: flex !important;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      max-width: 200px;
+      margin-top: 20px;
+    }
+
+    .mobile-nav .header-actions button {
+      width: 100%;
+      margin: 0;
+      justify-content: center;
+    }
+
+    @media (max-width: 1024px) {
+      .mobile-menu-btn {
+        display: none;
+        /* Hidden by default on all screens */
+      }
+
+      @media (max-width: 768px) {
+        .mobile-menu-btn {
+          display: flex !important;
+          /* Only show on mobile */
+          position: absolute;
+          top: 20px;
+          right: 20px;
+          z-index: 1001;
+        }
+
+        header {
+          padding: 15px 20px;
+          position: relative;
+        }
+
+        h1 {
+          font-size: 1.2rem;
+          margin-right: 15px;
+        }
+
+        .header-actions {
+          display: none;
+        }
+
+        .mobile-nav {
+          display: flex;
+        }
+      }
+    }
+  </style>
+
+  <!-- HEADER -->
+  <header>
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <a href='/' id='homeBtn' title='Home'>
+        ⌂
+      </a>
+      <h1 style="margin: 0;">▼ Smart Water Mine Pump Dashboard</h1>
+    </div>
+    <!-- Mobile Menu Button (hidden on desktop) -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- Desktop Navigation (Always visible on desktop) -->
+    <div class="header-actions">
+      <!-- Mic Button (24x24) -->
+      <button id="voiceBtnNavbar" aria-label="Voice Command" title="Voice Commands"
+        style="background: none; border: none; padding: 0; cursor: pointer; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; margin-right: 4px;">
+        <img src="images/voice.png" alt="Voice Command" style="width: 100%; height: 100%; object-fit: contain;">
+      </button>
+
+      <!-- Chatbot Button (32x32) -->
+      <button id="chatbotBtn" aria-label="AI Chatbot" title="Open AI Assistant"
+        style="background: none; border: none; padding: 0; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 8px;">
+        <img src="images/chatbot.png" alt="AI Chatbot" style="width: 100%; height: 100%; object-fit: contain;">
+      </button>
+
+      <button id="emailNotificationToggle" aria-label="Email Notifications Toggle" title="Toggle Email Notifications"
+        style="display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: transparent; border: 2px solid #00d9ff; color: #00d9ff; border-radius: 4px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease-in-out; -webkit-tap-highlight-color: transparent;">
+        <div style="position: relative; width: 16px; height: 16px;">
+          <img src="images/gmail.png" alt="Email Alerts" style="width: 100%; height: 100%; object-fit: contain;">
+          <div id="emailSlash" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+            <svg width="16" height="16" viewBox="0 0 16 16" style="position: absolute; top: 0; left: 0;">
+              <line x1="0" y1="16" x2="16" y2="0" stroke="red" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
+        <span>Email Alerts</span>
+      </button>
+      <button id="modeToggle" aria-label="Dark Mode Toggle" title="Toggle Dark/Light Mode">☀️ Dark Mode</button>
+      <button id="logoutBtn" aria-label="Logout Button" title="Logout of Dashboard">Logout</button>
+    </div>
+  </header>
+
+  <!-- Graph Analytics Popup -->
+  <div id="graphPopup" class="popup-overlay" style="display: none; z-index: 10000;">
+    <div class="popup-content" style="max-width: 95%; max-height: 90vh; width: 100%; padding: 20px; overflow: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2>Analytics Dashboard</h2>
+        <button id="closeGraphPopup"
+          style="background: none; border: none; font-size: 24px; cursor: pointer; color: #fff;">×</button>
+      </div>
+      <iframe id="graphIframe" src="graph.html"
+        style="width: 100%; height: 80vh; border: none; border-radius: 8px;"></iframe>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="mobile-menu-overlay" id="mobileMenuOverlay"></div>
+  <nav class="mobile-nav" id="mobileNav">
+    <div class="mobile-nav-content">
+      <div class="mobile-nav-header">
+        <h3>Menu</h3>
+        <button class="close-menu-btn" id="closeMenuBtn">×</button>
+      </div>
+      <div class="mobile-nav-buttons">
+        <button class="mobile-nav-btn" id="voiceBtnNavbarMobile">
+          <img src="images/voice.png" alt="Voice">
+          <span>Voice Command</span>
+        </button>
+        <button class="mobile-nav-btn" id="chatbotBtnMobile">
+          <img src="images/chatbot.png" alt="AI Assistant">
+          <span>AI Assistant</span>
+        </button>
+        <button class="mobile-nav-btn" id="homeBtnMobile">
+          <img src="images/house.png" alt="Home">
+          <span>Home</span>
+        </button>
+        <button class="mobile-nav-btn" id="emailNotificationToggleMobile">
+          <img src="images/gmail.png" alt="Email Alerts">
+          <span>Email Alerts</span>
+        </button>
+        <button class="mobile-nav-btn logout-btn" id="logoutBtnMobile">
+          <img src="images/logout.png" alt="Logout">
+          <span>Logout</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <script>
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileNav = document.getElementById('mobileNav');
+    const mobileMenuOverlay = document.getElementById('mobileMenuOverlay');
+    const closeMenuBtn = document.getElementById('closeMenuBtn');
+
+    function openMobileMenu() {
+      mobileNav.classList.add('active');
+      mobileMenuOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMobileMenu() {
+      mobileNav.classList.remove('active');
+      mobileMenuOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // Toggle menu when clicking the hamburger button
+    mobileMenuBtn.addEventListener('click', openMobileMenu);
+
+    // Close menu when clicking the close button
+    closeMenuBtn.addEventListener('click', closeMobileMenu);
+
+    // Close menu when clicking on overlay
+    mobileMenuOverlay.addEventListener('click', closeMobileMenu);
+
+    // Close menu when clicking on nav links
+    document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+      btn.addEventListener('click', closeMobileMenu);
+    });
+
+    // Close graph popup
+    document.getElementById('closeGraphPopup').addEventListener('click', () => {
+      document.getElementById('graphPopup').style.display = 'none';
+      document.body.style.overflow = '';
+    });
+
+    // Close popup when clicking outside content
+    document.getElementById('graphPopup').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('graphPopup')) {
+        document.getElementById('graphPopup').style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    });
+
+    document.getElementById('voiceBtnNavbarMobile').addEventListener('click', () => {
+      document.getElementById('voiceBtnNavbar').click();
+    });
+
+    document.getElementById('chatbotBtnMobile').addEventListener('click', () => {
+      document.getElementById('chatbotBtn').click();
+    });
+
+    document.getElementById('homeBtnMobile').addEventListener('click', () => {
+      document.getElementById('homeBtn').click();
+    });
+
+    document.getElementById('emailNotificationToggleMobile').addEventListener('click', () => {
+      document.getElementById('emailNotificationToggle').click();
+    });
+
+    // Logout functionality
+    document.getElementById('logoutBtnMobile').addEventListener('click', () => {
+      if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('loggedInUser');
+        sessionStorage.removeItem('isLoggedIn');
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Close menu when pressing Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeMobileMenu();
+      }
+    });
+  </script>
+
+  <!-- Voice Status Display -->
+  <p id="voiceStatus" style="display: none;">Listening...</p>
+
+  <main class="dashboard">
+
+    <!-- ROW 1: COMMAND CENTER -->
+    <!-- Pump Control -->
+    <section class="card card-pump-control">
+      <h2><img src="images/admin-panel.png" alt="Pump Control"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">Pump Control</h2>
+      <div class="switch">
+        <input type="checkbox" id="pumpSwitch" aria-label="Pump Power Switch" title="Toggle Pump On or Off">
+        <label for="pumpSwitch"></label>
+      </div>
+      <p id="pumpStatus" style="color: red;">STANDBY</p>
+    </section>
+    <!-- Pump Status -->
+    <section class="card card-pump-status">
+      <h2><img src="images/status.png" alt="Pump Status"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">Pump Status</h2>
+      <p id="pumpStatusIndicator">
+        <span class="dot off" id="statusDot"></span>
+        <span id="pumpStatusText">OFF</span>
+      </p>
+      <p>Runtime: <span id="runtime">0:00:00</span></p>
+
+      <!-- Device Connectivity Indicators -->
+      <div class="device-status-container">
+        <div class="device-status-item">
+          <div class="device-info">
+            <span class="device-icon">📡</span>
+            <span class="device-name">LoRa Module</span>
+          </div>
+          <div class="device-status">
+            <div class="status-indicator offline" id="loraStatus">
+              <span class="status-dot"></span>
+              <span>Offline</span>
+            </div>
+            <span class="status-timestamp" id="loraTimestamp">Never connected</span>
+          </div>
+        </div>
+
+        <div class="device-status-item">
+          <div class="device-info">
+            <span class="device-icon">📶</span>
+            <span class="device-name">ESP Module</span>
+          </div>
+          <div class="device-status">
+            <div class="status-indicator offline" id="espStatus">
+              <span class="status-dot"></span>
+              <span>Offline</span>
+            </div>
+            <span class="status-timestamp" id="espTimestamp">Never connected</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Water Level -->
+    <section class="card card-water-level">
+      <h2><img src="images/water.png" alt="Water Level"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">Water Level</h2>
+      <div class="water-bar">
+        <div class="water-fill" style="height: 0%;"></div>
+      </div>
+      <div class="water-text">0%</div>
+    </section>
+    <!-- Live Flow Rate -->
+    <section class="card card-flow-rate">
+      <h2><img src="images/sea-level.png" alt="Flow Rate"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">Live Flow Rate</h2>
+      <div class="circle">0<br><span>L/min</span></div>
+    </section>
+
+    <!-- ...existing code... -->
+
+    <!-- ROW 2: SYSTEM HEALTH -->
+
+    <section class="card card-system-health full-width">
+      <h2><img src="images/power.png" alt="System Health"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">System Health &amp; Environment
+      </h2>
+      <div class="health-grid">
+        <div class="health-item">
+          <span class="health-label">
+            <img src="images/power.png" alt="Battery"
+              style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+            Battery
+          </span>
+          <span id="battery" class="health-value">0%</span>
+          <span id="batteryBackupTime" class="health-status backup-time">~0h</span>
+          <span id="batteryChargingStatus" class="health-status charging-status">Idle</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">
+            <img src="images/solar-cell.png" alt="Solar"
+              style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+            Solar Efficiency
+          </span>
+          <span id="solar" class="health-value">0%</span>
+        </div>
+        <div class="health-item health-item-weather" id="weatherCard" onclick="toggleForecast()">
+          <span class="health-label">
+            <img src="images/cloudy.png" alt="Weather"
+              style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+            Weather
+          </span>
+          <span id="weather" class="health-value" title="Click to see 7-day forecast"
+            style="cursor: pointer; text-decoration: underline; vertical-align: middle;">--°C</span>
+          <span class="weather-hint">Click for forecast</span>
+        </div>
+        <div class="health-item">
+          <span class="health-label">
+            <img src="images/dust.png" alt="Dust Level"
+              style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px;">
+            Dust Level
+          </span>
+          <span id="dust" class="health-value">0%</span>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- 7-DAY WEATHER FORECAST -->
+    <section class="card card-forecast full-width" id="forecastCard" style="display: none;">
+      <div class="forecast-header">
+        <h2>☁ 7-Day Weather Forecast</h2>
+        <button class="forecast-close-btn" onclick="event.stopPropagation(); toggleForecast();">✕</button>
+      </div>
+      <div class="forecast-grid" id="forecastGrid">
+        <div style="text-align:center; padding:20px; color:#fff;">Click weather to load forecast...</div>
+      </div>
+    </section>
+
+    <!-- ROW 3: ANALYTICS -->
+
+    <section class="card card-charts chart-card-centered">
+      <h2><img src="images/statistics.png" alt="Data History & Trends"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">Data History &amp; Trends</h2>
+
+      <div class="chart-controls">
+        <button id="overlayToggle" class="time-btn">Overlay All Metrics</button>
+        <div class="time-buttons">
+          <button class="time-btn" data-time="1h">Last Hour</button>
+          <button class="time-btn active" data-time="24h">24 Hours</button>
+          <button class="time-btn" data-time="7d">7 Days</button>
+          <button class="time-btn" data-time="30d">30 Days</button>
+        </div>
+      </div>
+
+      <div class="chart-wrapper" style="position: relative;">
+        <button id="chartArrowLeft" class="chart-arrow chart-arrow-left" disabled=""
+          style="opacity: 0.3; cursor: not-allowed;">◀</button>
+        <button id="chartArrowRight" class="chart-arrow chart-arrow-right"
+          style="opacity: 1; cursor: pointer;">▶</button>
+
+        <div class="chart-area">
+          <div class="chart-container" style="display: block;">
+            <div class="chart-title">Water Level &amp; Flow Rate</div>
+            <canvas id="dataChart"></canvas>
+          </div>
+
+          <div class="battery-chart-container" style="display: none;">
+            <div class="chart-title">Battery Level History</div>
+            <canvas id="batteryChart"></canvas>
+          </div>
+
+          <div class="solar-chart-container" style="display: none;">
+            <div class="chart-title">Solar Power History</div>
+            <canvas id="solarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-indicators">
+        <div class="chart-indicator active" data-chart="0"></div>
+        <div class="chart-indicator" data-chart="1"></div>
+        <div class="chart-indicator" data-chart="2"></div>
+      </div>
+    </section>
+
+    <!-- AI Insights -->
+    <section class="card card-ai-insights" id="aiInsights">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0;"><img src="images/ai-assistant.png" alt="AI Insights"
+            style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">AI Insights</h2>
+        <button id="muteToggle" aria-label="Toggle Sound" title="Toggle Sound On/Off">
+          ♪
+        </button>
+      </div>
+      <div id="alertBox" title="System alerts and notifications">
+        <div class="ok-status">✓ All systems normal</div>
+      </div>
+      <div id="aiAlert" class="ai-alert hidden" title="AI predictive alerts"></div>
+      <div class="ai-switch">
+        <label for="aiWaterLimit" title="Limit water level to 40% by AI control">Limit Water to 40%</label>
+        <div class="switch">
+          <input type="checkbox" id="aiWaterLimit" aria-label="AI Water Limit Toggle"
+            title="Toggle AI Water Level Limit">
+          <label for="aiWaterLimit"></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- Real-Time Cost & CO₂ Savings -->
+    <section class="card card-savings-stats" style="grid-column: span 12;">
+      <h2>$ Real-Time Cost & CO₂ Savings</h2>
+      <div class="savings-stats-grid">
+        <!-- Total Cost Saved -->
+        <div class="savings-stat-card cost-saved">
+          <div class="stat-icon">₹</div>
+          <div class="stat-content">
+            <div class="stat-label">Total Cost Saved</div>
+            <div class="stat-value" id="totalCostSaved">₹0.00</div>
+            <div class="stat-subtitle">Spent: <span id="costSpent">₹0.00</span></div>
+            <div class="stat-progress">
+              <div class="progress-bar">
+                <div class="progress-fill cost-fill" style="width: 0%;" id="costSavingsBar"></div>
+              </div>
+              <div class="progress-label"><span id="savingsPercent">0</span>% savings</div>
+            </div>
+          </div>
+        </div>
+        <!-- Total CO2 Saved -->
+        <div class="savings-stat-card co2-saved">
+          <div class="stat-icon">🌱</div>
+          <div class="stat-content">
+            <div class="stat-label">CO₂ Prevented</div>
+            <div class="stat-value" id="totalCO2Saved">0.00 kg</div>
+            <div class="stat-subtitle">Emitted: <span id="co2Emitted">0.00 kg</span></div>
+            <div class="stat-badge">Net Positive Impact</div>
+          </div>
+        </div>
+        <!-- Solar Energy Used -->
+        <div class="savings-stat-card energy-saved">
+          <div class="stat-icon">☀️</div>
+          <div class="stat-content">
+            <div class="stat-label">Solar Energy Used</div>
+            <div class="stat-value" id="totalEnergySaved">0.00 kWh</div>
+            <div class="stat-subtitle">Clean & Renewable</div>
+            <div class="stat-trend">
+              <span class="trend-icon">▲</span>
+              <span>Optimized Usage</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Savings Breakdown (Hidden but keeping the elements for popup functionality) -->
+    <div style="display: none;">
+      <div id="dailyCostSaved">₹0.00</div>
+      <div id="dailyCO2Saved">0.00 kg</div>
+      <div id="dailyEnergySaved">0.00 kWh</div>
+      <div id="monthlyCostSaved">₹0.00</div>
+      <div id="monthlyCO2Saved">0.00 kg</div>
+      <div id="monthlyEnergySaved">0.00 kWh</div>
+      <div id="yearlyCostSaved">₹0.00</div>
+      <div id="yearlyCO2Saved">0.00 kg</div>
+      <div id="yearlyEnergySaved">0.00 kWh</div>
+    </div>
+
+    <!-- ROW: SIGNAL & DETECTION -->
+    <!-- LoRa Signal Strength (Card 1) -->
+    <section class="card card-lora-signal">
+      <h2><img src="images/signal.png" alt="LoRa Signal"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">LoRa Signal</h2>
+      <div class="signal-metrics">
+        <div class="signal-item">
+          <span class="signal-label">RSSI</span>
+          <span class="signal-value" id="loraRSSI">-- dBm</span>
+          <div class="signal-bar">
+            <div class="signal-fill rssi-fill" id="rssiBar" style="width: 0%;"></div>
+          </div>
+        </div>
+        <div class="signal-item">
+          <span class="signal-label">SNR</span>
+          <span class="signal-value" id="loraSNR">-- dB</span>
+          <div class="signal-bar">
+            <div class="signal-fill snr-fill" id="snrBar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ML-Based Leak Detection (Card 2) -->
+    <section class="card card-leak-detection">
+      <h2>
+        <img src="images/leak.png" alt="Leak Detection"
+          style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;">
+        AI Leak Detection
+        <span class="ml-badge">ML</span>
+      </h2>
+      <div class="leak-status-container">
+        <div class="leak-indicator" id="leakIndicator">
+          <div class="leak-icon">💧</div>
+          <div class="leak-status-text" id="leakStatusText">Analyzing...</div>
+          <div class="leak-confidence" id="leakConfidence">Confidence: --</div>
+        </div>
+        <div class="leak-details">
+          <div class="leak-detail-item">
+            <span class="leak-detail-label">Water Loss Rate</span>
+            <span class="leak-detail-value" id="waterLossRate">-- L/h</span>
+          </div>
+          <div class="leak-detail-item">
+            <span class="leak-detail-label">Anomaly Score</span>
+            <span class="leak-detail-value" id="anomalyScore">0%</span>
+          </div>
+          <div class="leak-detail-item">
+            <span class="leak-detail-label">Leak Count (24h)</span>
+            <span class="leak-detail-value" id="leakCount24h">0</span>
+          </div>
+        </div>
+        <div class="ml-indicators">
+          <div class="ml-indicator-item">
+            <span class="ml-indicator-label">📊 Flow Anomaly</span>
+            <div class="ml-progress-bar">
+              <div class="ml-progress-fill" id="flowAnomalyBar"></div>
+            </div>
+          </div>
+          <div class="ml-indicator-item">
+            <span class="ml-indicator-label">📉 Water Drop Rate</span>
+            <div class="ml-progress-bar">
+              <div class="ml-progress-fill" id="waterDropBar"></div>
+            </div>
+          </div>
+          <div class="ml-indicator-item">
+            <span class="ml-indicator-label">⚡ Pressure Change</span>
+            <div class="ml-progress-bar">
+              <div class="ml-progress-fill" id="pressureChangeBar"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- History Log Card -->
+    <section class="card card-history-log">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 style="margin: 0;"><img src="images/history.png" alt="History Log"
+            style="width: 20px; height: 20px; vertical-align: middle; margin-right: 5px;"
+            onerror="this.style.display='none'">📜 History Log</h2>
+        <div style="display: flex; gap: 0.5rem;">
+          <button id="exportHistoryBtn"
+            style="background: transparent; border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: 600; transition: all 0.2s ease;">
+            Export
+          </button>
+          <button id="clearHistoryBtn"
+            style="background: transparent; border: 1px solid var(--accent-red); color: var(--accent-red); padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.7rem; font-weight: 600; transition: all 0.2s ease;">
+            Clear
+          </button>
+        </div>
+      </div>
+      
+      <!-- Filter Buttons -->
+      <div class="history-filter-container">
+        <button class="history-filter-btn active" data-filter="all">
+          <span>📋</span> All
+        </button>
+        <button class="history-filter-btn" data-filter="critical">
+          <span>🚨</span> Critical
+        </button>
+        <button class="history-filter-btn" data-filter="warning">
+          <span>⚠️</span> Warning
+        </button>
+        <button class="history-filter-btn" data-filter="success">
+          <span>✅</span> Success
+        </button>
+        <button class="history-filter-btn" data-filter="info">
+          <span>ℹ️</span> Info
+        </button>
+        <button class="history-filter-btn" data-filter="error">
+          <span>❌</span> Error
+        </button>
+      </div>
+      
+      <div id="historyLogContainer"
+        style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="history-empty" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          <div style="font-size: 2rem; opacity: 0.3; margin-bottom: 0.5rem;">📋</div>
+          <p style="margin: 0; font-size: 0.85rem;">No events logged yet</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+
+  <!-- Google Translate (Hidden) -->
+  <div class="google" id="google_translate_element"></div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="firebase.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script type="module" src="script.js"></script>
+
+  <!-- Home Button Script -->
+  <script>
+    // Home button functionality - keeps user logged in
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) {
+      homeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+
+        // Ensure session data persists
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        if (loggedInUser) {
+          sessionStorage.setItem('isLoggedIn', 'true');
+        }
+
+        // Navigate to landing page
+        window.location.href = 'login.html';
+      });
+    }
+  </script>
+
+  <!-- Weather Forecast Script -->
+  <script>
+    function toggleForecast() {
+      const forecastCard = document.getElementById('forecastCard');
+      const weatherCard = document.getElementById('weatherCard');
+
+      if (forecastCard.style.display === 'none' || !forecastCard.style.display) {
+        forecastCard.style.display = 'block';
+        if (weatherCard) weatherCard.classList.add('active');
+        fetchRealForecast();
+      } else {
+        forecastCard.style.display = 'none';
+        if (weatherCard) weatherCard.classList.remove('active');
+      }
+    }
+
+    async function fetchRealForecast() {
+      const forecastGrid = document.getElementById('forecastGrid');
+      if (!forecastGrid) return;
+
+      forecastGrid.innerHTML = '<div style="text-align:center; padding:40px; color:#fff; font-size:16px;">↻ Loading real weather data...</div>';
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => loadRealForecastData(pos.coords.latitude, pos.coords.longitude, forecastGrid),
+          () => loadRealForecastData(22.5726, 88.3639, forecastGrid),
+          { timeout: 5000 }
+        );
+      } else {
+        loadRealForecastData(22.5726, 88.3639, forecastGrid);
+      }
+    }
+
+    async function loadRealForecastData(lat, lon, container) {
+      const owmApiKey = "b190a0605344cc4f3af08d0dd473dd25";
+      const owmCurrentUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${owmApiKey}&units=metric`;
+      const owmForecastUrl = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${owmApiKey}&units=metric`;
+      const meteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,precipitation_probability_max&timezone=auto`;
+
+      try {
+        const [owmCurrentRes, owmForecastRes, meteoRes] = await Promise.all([
+          fetch(owmCurrentUrl),
+          fetch(owmForecastUrl),
+          fetch(meteoUrl)
+        ]);
+
+        const owmCurrent = await owmCurrentRes.json();
+        const owmForecast = await owmForecastRes.json();
+        const meteoData = await meteoRes.json();
+
+        if (!meteoData.daily || !meteoData.daily.time) {
+          throw new Error('Invalid weather data');
+        }
+
+        const liveCurrentTemp = Math.round(owmCurrent.main?.temp || 0);
+        const dailyTemps = {};
+
+        if (owmForecast.list) {
+          owmForecast.list.forEach(item => {
+            const date = new Date(item.dt * 1000);
+            const dateKey = date.toDateString();
+            const hour = date.getHours();
+
+            if (hour >= 11 && hour <= 14) {
+              dailyTemps[dateKey] = Math.round(item.main.temp);
+            }
+          });
+        }
+
+        let html = '';
+
+        for (let i = 0; i < meteoData.daily.time.length; i++) {
+          const date = new Date(meteoData.daily.time[i]);
+          const today = new Date();
+          const isToday = date.toDateString() === today.toDateString();
+          const dateKey = date.toDateString();
+
+          const dayName = isToday ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' });
+          const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const weatherEmoji = getWeatherEmojiFromCode(meteoData.daily.weathercode[i]);
+          const rainChance = meteoData.daily.precipitation_probability_max[i] || 0;
+
+          let temp;
+          if (isToday) {
+            temp = liveCurrentTemp;
+          } else if (dailyTemps[dateKey]) {
+            temp = dailyTemps[dateKey];
+          } else {
+            temp = liveCurrentTemp + Math.floor(Math.random() * 5) - 2;
+          }
+
+          html += `
+            <div class="forecast-day-card">
+              <span class="forecast-day-name">${dayName}</span>
+              <span class="forecast-date">${dateStr}</span>
+              <span class="forecast-icon">${weatherEmoji}</span>
+              <span class="forecast-temp" style="font-size:1.8rem; font-weight:bold; color:#fff;">${temp}°C</span>
+              <span class="forecast-rain">▼ ${rainChance}%</span>
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+
+      } catch (err) {
+        console.error("Forecast error:", err);
+        container.innerHTML = `
+          <div style="text-align:center; padding:40px; color:#ff6b6b;">
+            ✕ Failed to load weather forecast.<br>
+            <small style="color:#aaa;">Please check your internet connection and try again.</small><br>
+            <button onclick="fetchRealForecast()" style="margin-top:15px; padding:10px 20px; background:#00bcd4; border:none; border-radius:8px; color:#fff; cursor:pointer;">
+              ↻ Retry
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    function getWeatherEmojiFromCode(code) {
+      if (code === 0) return '☼';
+      if (code === 1) return '☁';
+      if (code === 2) return '☁';
+      if (code === 3) return '☁';
+      if (code >= 45 && code <= 48) return '≈';
+      if (code >= 51 && code <= 55) return '≋';
+      if (code >= 56 && code <= 57) return '❅';
+      if (code >= 61 && code <= 65) return '≋';
+      if (code >= 66 && code <= 67) return '❅';
+      if (code >= 71 && code <= 77) return '❆';
+      if (code >= 80 && code <= 82) return '≋';
+      if (code >= 85 && code <= 86) return '❅';
+      if (code >= 95 && code <= 99) return '☇';
+      return '☁';
+    }
+  </script>
+
+  <!-- ▣ AI CHATBOT MODAL -->
+  <div id="chatbotModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 100000;">
+    <!-- Overlay Background -->
+    <div id="chatbotOverlay" style="
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1;
+    "></div>
+
+    <!-- Chatbot Iframe -->
+    <iframe src="chatbot.html" id="chatbot-iframe" style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 400px;
+        height: 650px;
+        max-width: 95vw;
+        max-height: 90vh;
+        border: none;
+        z-index: 2;
+        background: transparent;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        pointer-events: auto;
+      ">
+    </iframe>
+  </div>
+
+  <!-- Chatbot Button Script -->
+  <script>
+    (function () {
+      const chatbotBtn = document.getElementById('chatbotBtn');
+      const chatbotModal = document.getElementById('chatbotModal');
+      const chatbotOverlay = document.getElementById('chatbotOverlay');
+      const chatbotIframe = document.getElementById('chatbot-iframe');
+
+      if (!chatbotBtn || !chatbotModal) {
+        console.error('Chatbot elements not found');
+        return;
+      }
+
+      console.log('✓ Chatbot initialized successfully');
+
+      // Open chatbot modal
+      chatbotBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        console.log('Opening chatbot...');
+        chatbotModal.style.display = 'block';
+        chatbotModal.style.opacity = '0';
+        setTimeout(() => {
+          chatbotModal.style.opacity = '1';
+        }, 50);
+      });
+
+      // Close on overlay click
+      if (chatbotOverlay) {
+        chatbotOverlay.addEventListener('click', function (e) {
+          if (e.target === chatbotOverlay) {
+            console.log('Closing chatbot via overlay...');
+            chatbotModal.style.opacity = '0';
+            setTimeout(() => {
+              chatbotModal.style.display = 'none';
+            }, 300);
+          }
+        });
+      }
+
+      // Listen for close from inside iframe
+      window.addEventListener('message', function (e) {
+        if (e.data === 'closeChatbot') {
+          console.log('Closing chatbot via message...');
+          chatbotModal.style.opacity = '0';
+          setTimeout(() => {
+            chatbotModal.style.display = 'none';
+          }, 300);
+        }
+      });
+
+      // Close on ESC key
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && chatbotModal.style.display === 'block') {
+          chatbotModal.style.opacity = '0';
+          setTimeout(() => {
+            chatbotModal.style.display = 'none';
+          }, 300);
+        }
+      });
+
+    })();
+
+    // Savings Breakdown Popup Functionality
+    document.addEventListener('DOMContentLoaded', function () {
+      const savingsPopup = document.getElementById('savingsPopup');
+      const popupContent = document.getElementById('popupContent');
+      const closePopup = document.querySelector('.close-popup');
+
+      // Function to show popup with content
+      function showPopup(title, type) {
+        // Get the relevant data based on type
+        let dailyId, monthlyId, yearlyId;
+
+        // Map the type to the correct element IDs
+        if (type === 'co2') {
+          dailyId = 'dailyCO2Saved';
+          monthlyId = 'monthlyCO2Saved';
+          yearlyId = 'yearlyCO2Saved';
+        } else if (type === 'energy') {
+          dailyId = 'dailyEnergySaved';
+          monthlyId = 'monthlyEnergySaved';
+          yearlyId = 'yearlyEnergySaved';
+        } else { // cost
+          dailyId = 'dailyCostSaved';
+          monthlyId = 'monthlyCostSaved';
+          yearlyId = 'yearlyCostSaved';
+        }
+
+        const dailyValue = document.getElementById(dailyId)?.textContent || 'N/A';
+        const monthlyValue = document.getElementById(monthlyId)?.textContent || 'N/A';
+        const yearlyValue = document.getElementById(yearlyId)?.textContent || 'N/A';
+
+        // Set icons and labels based on type
+        let icon, label;
+        switch (type) {
+          case 'cost':
+            icon = '₹';
+            label = 'Cost Saved';
+            break;
+          case 'co2':
+            icon = '🌱';
+            label = 'CO₂ Prevented';
+            break;
+          case 'energy':
+            icon = '☀️';
+            label = 'Solar Energy';
+            break;
+        }
+
+        popupContent.innerHTML = `
+          <div class="popup-header">
+            <h2>${title}</h2>
+            <button class="close-popup" aria-label="Close">&times;</button>
+          </div>
+          <div class="popup-body">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">${icon}</div>
+                <h3 class="stat-title">Daily</h3>
+                <div class="stat-value">${dailyValue}</div>
+                <div class="stat-label">${label}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">${icon}</div>
+                <h3 class="stat-title">Monthly</h3>
+                <div class="stat-value">${monthlyValue}</div>
+                <div class="stat-label">${label}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">${icon}</div>
+                <h3 class="stat-title">Yearly</h3>
+                <div class="stat-value">${yearlyValue}</div>
+                <div class="stat-label">${label}</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Re-attach close button event
+        const closeBtn = popupContent.querySelector('.close-popup');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', closePopupHandler);
+        }
+        savingsPopup.style.display = 'flex';
+        setTimeout(() => {
+          savingsPopup.classList.add('show');
+        }, 10);
+      }
+
+      // Close popup
+      function closePopupHandler() {
+        savingsPopup.classList.remove('show');
+        setTimeout(() => {
+          savingsPopup.style.display = 'none';
+        }, 300);
+      }
+
+      // Close popup when clicking the X
+      if (closePopup) {
+        closePopup.addEventListener('click', closePopupHandler);
+      }
+
+      // Close popup when clicking outside
+      window.addEventListener('click', (e) => {
+        if (e.target === savingsPopup) {
+          closePopupHandler();
+        }
+      });
+
+      // Add click events to savings cards
+      const costCard = document.querySelector('.savings-stat-card.cost-saved');
+      const co2Card = document.querySelector('.savings-stat-card.co2-saved');
+      const energyCard = document.querySelector('.savings-stat-card.energy-saved');
+
+      function getBreakdownHTML(type) {
+        const daily = document.querySelector('.savings-period-row.daily');
+        const monthly = document.querySelector('.savings-period-row.monthly');
+        const yearly = document.querySelector('.savings-period-row.yearly');
+
+        if (!daily || !monthly || !yearly) return '<p>Breakdown data not available</p>';
+
+        // Clone the elements to avoid removing them from the DOM
+        const dailyClone = daily.cloneNode(true);
+        const monthlyClone = monthly.cloneNode(true);
+        const yearlyClone = yearly.cloneNode(true);
+
+        // Function to filter stats based on type
+        const filterStats = (periodEl, type) => {
+          const stats = periodEl.querySelectorAll('.period-stat');
+          stats.forEach(stat => {
+            const statType = stat.querySelector('.period-stat-label').textContent.toLowerCase();
+            const shouldShow =
+              (type === 'cost' && statType.includes('cost')) ||
+              (type === 'co2' && statType.includes('co₂')) ||
+              (type === 'energy' && statType.includes('solar'));
+
+            if (!shouldShow) {
+              stat.style.display = 'none';
+            }
+          });
+          return periodEl;
+        };
+
+        // Filter each period to show only the relevant stat
+        const filteredDaily = filterStats(dailyClone, type);
+        const filteredMonthly = filterStats(monthlyClone, type);
+        const filteredYearly = filterStats(yearlyClone, type);
+
+        // Add a class to style the popup content
+        [filteredDaily, filteredMonthly, filteredYearly].forEach(el => {
+          el.classList.add('popup-breakdown');
+        });
+
+        return filteredDaily.outerHTML + filteredMonthly.outerHTML + filteredYearly.outerHTML;
+      }
+
+      if (costCard) {
+        costCard.addEventListener('click', () => {
+          showPopup('Cost Savings', 'cost');
+        });
+      }
+
+      if (co2Card) {
+        co2Card.addEventListener('click', () => {
+          showPopup('CO₂ Savings', 'co2');
+        });
+      }
+
+      if (energyCard) {
+        energyCard.addEventListener('click', () => {
+          showPopup('Energy Usage', 'energy');
+        });
+      }
+    });
+  </script>
+
+  <!-- Savings Breakdown Popup -->
+  <div id="savingsPopup" class="savings-popup">
+    <div class="popup-content">
+      <span class="close-popup">&times;</span>
+      <div id="popupContent"></div>
+    </div>
+  </div>
+
+</body>
+
+</html>
